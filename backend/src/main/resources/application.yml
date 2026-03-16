@@ -1,0 +1,66 @@
+quarkus:
+  application:
+    name: resonant-backend
+    version: 1.0.0
+  server:
+    port: 8080
+  datasource:
+    db-kind: postgresql
+    username: resonant
+    password: resonant
+    jdbc:
+      url: jdbc:postgresql://localhost:5432/resonant
+    connection-maximization-size: 20
+  hibernate-orm:
+    database:
+      generation: none
+    dialect: org.hibernate.dialect.PostgreSQLDialect
+  redis:
+    hosts: redis://localhost:6379
+  flyway:
+    migrate-at-start: true
+    locations: db/migration
+mp:
+  jwt:
+    verify:
+      # The server will reject any token where 'iss' claim != this value
+      issuer: "resonant-app"
+      publickey:
+        location: "publicKey.pem"
+
+smallrye:
+  jwt:
+    new-token:
+      # This automatically adds "iss": "resonant-app" to every token you build
+      issuer: "resonant-app"
+    sign:
+      key:
+        location: "privateKey.pem"
+  log:
+    level: INFO
+    category:
+      "com.resonant": DEBUG
+      "org.flywaydb": DEBUG
+
+# Application-specific configuration
+app:
+  ratelimit:
+    enabled: true
+    messages-per-minute: 10
+    channels-per-minute: 5
+    servers-per-minute: 2
+    ttl-seconds: 60
+  jwt:
+    expiry-seconds: 3600
+    issuer: resonant-app
+    audience: resonant-users
+
+# Enable CORS for frontend local development
+"%dev":
+  quarkus:
+    http:
+      cors:
+        origins: "*"
+        methods: "GET,POST,PUT,DELETE,OPTIONS"
+        headers: "X-Custom-Header,Content-Disposition"
+        credentials: true

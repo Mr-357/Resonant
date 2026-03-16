@@ -1,0 +1,77 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #36393F;
+}
+
+.sidebar {
+  width: 70px;
+  background: #2C2F33;
+  border-right: 1px solid #202225;
+  overflow-y: auto;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 52px;
+  height: calc(100vh - 52px);
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  margin-left: 70px;
+  margin-bottom: 52px;
+  min-height: 0;
+}
+
+.channels-panel {
+  width: 240px;
+  background: #2F3136;
+  border-right: 1px solid #202225;
+  overflow-y: auto;
+}
+
+.messages-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.user-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: #292B2F;
+  border-top: 1px solid #202225;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 100;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  color: #B9BBBE;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  color: #72767D;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #DCDDDE;
+}

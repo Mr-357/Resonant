@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resonant-config
+  namespace: default
+data:
+  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://postgres:5432/resonant"
+  QUARKUS_DATASOURCE_USERNAME: "resonant"
+  QUARKUS_DATASOURCE_PASSWORD: "resonant"
+  QUARKUS_REDIS_HOSTS: "redis://redis:6379"
+  APP_RATELIMIT_ENABLED: "true"
+  APP_RATELIMIT_MESSAGES_PER_MINUTE: "10"
+  APP_RATELIMIT_CHANNELS_PER_MINUTE: "5"
+  APP_RATELIMIT_SERVERS_PER_MINUTE: "2"
+  APP_RATELIMIT_TTL_SECONDS: "60"

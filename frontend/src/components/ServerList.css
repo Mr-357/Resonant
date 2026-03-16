@@ -1,0 +1,44 @@
+.server-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  align-items: center;
+}
+
+.server-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #2C2F33;
+  border: 2px solid transparent;
+  color: #B9BBBE;
+  font-weight: bold;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.server-button:hover {
+  border-color: #5865F2;
+  color: #5865F2;
+}
+
+.server-button.active {
+  background: #5865F2;
+  color: white;
+  border-color: #5865F2;
+}
+
+.server-button.add-server {
+  background: #3C3F45;
+  color: #43B581;
+}
+
+.server-button.add-server:hover {
+  background: #43B581;
+  color: white;
+}
