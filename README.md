@@ -111,7 +111,7 @@ For Kubernetes, update `k8s/configmap.yaml`.
 - [x] PostgreSQL schema with indexes
 - [x] Redis configuration
 - [x] User entities and DTOs
-- [ ] Run locally and verify builds
+- [x] Run locally and verify builds
 
 ### Phase 2: Core API (In Progress)
 - [ ] Authentication endpoints
