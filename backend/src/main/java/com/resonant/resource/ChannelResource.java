@@ -14,6 +14,13 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +30,7 @@ import java.util.stream.Collectors;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Authenticated
+@Tag(name = "Channels", description = "Channel management endpoints")
 public class ChannelResource {
 
     @Inject
@@ -35,7 +43,15 @@ public class ChannelResource {
     ChannelRepository channelRepository;
 
     @GET
-    public Response getChannels(@PathParam("serverId") Long serverId) {
+    @Operation(summary = "Get server channels", description = "Retrieve all channels in a server")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "List of channels",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ChannelDTO.class))),
+        @APIResponse(responseCode = "404", description = "Server not found")
+    })
+    public Response getChannels(
+        @Parameter(description = "Server ID", required = true)
+        @PathParam("serverId") Long serverId) {
         try {
             Optional<Server> serverOpt = serverRepository.findByIdOptional(serverId);
             if (serverOpt.isEmpty()) {
@@ -60,7 +76,17 @@ public class ChannelResource {
     @POST
     @RateLimit(key = "channel.create", limit = 5, windowSeconds = 60)
     @Transactional
-    public Response createChannel(@PathParam("serverId") Long serverId, CreateChannelRequest request) {
+    @Operation(summary = "Create a channel", description = "Create a new channel in a server (rate limited to 5 per 60 seconds)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "201", description = "Channel created successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ChannelDTO.class))),
+        @APIResponse(responseCode = "400", description = "Invalid channel data"),
+        @APIResponse(responseCode = "403", description = "User is not a member of this server"),
+        @APIResponse(responseCode = "404", description = "Server not found")
+    })
+    public Response createChannel(
+        @Parameter(description = "Server ID", required = true)
+        @PathParam("serverId") Long serverId, CreateChannelRequest request) {
         try {
             if (request.name == null || request.name.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
@@ -103,7 +129,17 @@ public class ChannelResource {
     @DELETE
     @Path("/{channelId}")
     @Transactional
-    public Response deleteChannel(@PathParam("serverId") Long serverId, @PathParam("channelId") Long channelId) {
+    @Operation(summary = "Delete a channel", description = "Delete a channel (only server owner can delete)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "204", description = "Channel deleted successfully"),
+        @APIResponse(responseCode = "403", description = "Only server owner can delete channels"),
+        @APIResponse(responseCode = "404", description = "Channel not found")
+    })
+    public Response deleteChannel(
+        @Parameter(description = "Server ID", required = true)
+        @PathParam("serverId") Long serverId,
+        @Parameter(description = "Channel ID", required = true)
+        @PathParam("channelId") Long channelId) {
         try {
             Optional<Channel> channelOpt = channelRepository.findByIdOptional(channelId);
             if (channelOpt.isEmpty() || !channelOpt.get().server.id.equals(serverId)) {

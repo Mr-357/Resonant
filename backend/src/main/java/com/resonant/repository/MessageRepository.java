@@ -11,12 +11,12 @@ import java.util.List;
 public class MessageRepository implements PanacheRepository<Message> {
 
     public List<Message> findByChannelNotDeleted(Long channelId) {
-        return find("channel.id = ?1 and is_deleted = false order by createdAt desc", channelId)
+        return find("channel.id = ?1 and isDeleted = false order by createdAt desc", channelId)
                 .list();
     }
 
     public List<Message> findByChannelSinceNotDeleted(Long channelId, LocalDateTime since) {
-        return find("channel.id = ?1 and is_deleted = false and created_at > ?2 order by createdAt desc", channelId, since)
+        return find("channel.id = ?1 and isDeleted = false and createdAt > ?2 order by createdAt desc", channelId, since)
                 .list();
     }
 }

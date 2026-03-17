@@ -16,6 +16,13 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
 import java.time.Instant;
@@ -28,6 +35,7 @@ import java.util.stream.Collectors;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Authenticated
+@Tag(name = "Messages", description = "Message management endpoints")
 public class MessageResource {
 
     @Inject
@@ -43,9 +51,18 @@ public class MessageResource {
     UserRepository userRepository;
 
     @GET
+    @Operation(summary = "Get channel messages", description = "Retrieve messages from a channel with optional filtering by timestamp and limit")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "List of messages",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = MessageDTO.class))),
+        @APIResponse(responseCode = "404", description = "Channel not found")
+    })
     public Response getMessages(
+        @Parameter(description = "Channel ID", required = true)
         @PathParam("channelId") Long channelId,
+        @Parameter(description = "Unix timestamp in milliseconds - retrieve only messages after this time", required = false)
         @QueryParam("since") Long sinceTimestamp,
+        @Parameter(description = "Maximum number of messages to return", required = false)
         @QueryParam("limit") @DefaultValue("50") int limit) {
         
         try {
@@ -89,7 +106,16 @@ public class MessageResource {
     @POST
     @RateLimit(key = "message.send", limit = 10, windowSeconds = 60)
     @Transactional
-    public Response createMessage(@PathParam("channelId") Long channelId, CreateMessageRequest request) {
+    @Operation(summary = "Send a message", description = "Create a new message in a channel (rate limited to 10 per 60 seconds)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "201", description = "Message created successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = MessageDTO.class))),
+        @APIResponse(responseCode = "400", description = "Invalid message data or message exceeds length limit"),
+        @APIResponse(responseCode = "404", description = "Channel not found")
+    })
+    public Response createMessage(
+        @Parameter(description = "Channel ID", required = true)
+        @PathParam("channelId") Long channelId, CreateMessageRequest request) {
         try {
             if (request.content == null || request.content.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
@@ -142,7 +168,17 @@ public class MessageResource {
     @DELETE
     @Path("/{messageId}")
     @Transactional
-    public Response deleteMessage(@PathParam("channelId") Long channelId, @PathParam("messageId") Long messageId) {
+    @Operation(summary = "Delete a message", description = "Delete a message (only message author can delete)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "204", description = "Message deleted successfully"),
+        @APIResponse(responseCode = "403", description = "Only message author can delete it"),
+        @APIResponse(responseCode = "404", description = "Message not found")
+    })
+    public Response deleteMessage(
+        @Parameter(description = "Channel ID", required = true)
+        @PathParam("channelId") Long channelId,
+        @Parameter(description = "Message ID", required = true)
+        @PathParam("messageId") Long messageId) {
         try {
             Optional<Message> messageOpt = messageRepository.findByIdOptional(messageId);
             if (messageOpt.isEmpty() || !messageOpt.get().channel.id.equals(channelId)) {

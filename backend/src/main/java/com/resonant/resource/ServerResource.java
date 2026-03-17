@@ -11,6 +11,13 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -18,6 +25,7 @@ import java.util.List;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Authenticated
+@Tag(name = "Servers", description = "Server management endpoints")
 public class ServerResource {
 
     @Inject
@@ -27,6 +35,9 @@ public class ServerResource {
     SecurityContext securityContext;
 
     @GET
+    @Operation(summary = "Get user servers", description = "Retrieve all servers where the authenticated user is a member")
+    @APIResponse(responseCode = "200", description = "List of servers",
+        content = @Content(mediaType = "application/json", schema = @Schema(implementation = Server.class)))
     public Response getServers() {
         Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
         List<Server> servers = serverService.getServersForUser(userId);
@@ -34,6 +45,12 @@ public class ServerResource {
     }
 
     @POST
+    @Operation(summary = "Create a new server", description = "Create a new server with the authenticated user as owner")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "201", description = "Server created successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Server.class))),
+        @APIResponse(responseCode = "400", description = "Invalid server data")
+    })
     public Response createServer(CreateServerRequest request) {
         try {
             Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
@@ -48,7 +65,15 @@ public class ServerResource {
 
     @GET
     @Path("/{serverId}")
-    public Response getServer(@PathParam("serverId") Long serverId) {
+    @Operation(summary = "Get server details", description = "Retrieve details of a specific server")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "Server details",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Server.class))),
+        @APIResponse(responseCode = "404", description = "Server not found")
+    })
+    public Response getServer(
+        @Parameter(description = "Server ID", required = true)
+        @PathParam("serverId") Long serverId) {
         try {
             Server server = serverService.getServer(serverId);
             return Response.ok(server).build();
@@ -61,7 +86,15 @@ public class ServerResource {
 
     @DELETE
     @Path("/{serverId}")
-    public Response deleteServer(@PathParam("serverId") Long serverId) {
+    @Operation(summary = "Delete a server", description = "Delete a server (only owner can delete)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "204", description = "Server deleted successfully"),
+        @APIResponse(responseCode = "403", description = "Insufficient permissions"),
+        @APIResponse(responseCode = "404", description = "Server not found")
+    })
+    public Response deleteServer(
+        @Parameter(description = "Server ID", required = true)
+        @PathParam("serverId") Long serverId) {
         try {
             Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
             serverService.deleteServer(serverId, userId);

@@ -1,0 +1,46 @@
+quarkus:
+  application:
+    name: resonant-backend
+    version: 1.0.0
+  test:
+    log-source-location: false
+  datasource:
+    db-kind: postgresql
+    username: resonant
+    password: resonant
+    jdbc:
+      url: jdbc:postgresql://localhost:5433/resonant
+    connection-maximization-size: 5
+  hibernate-orm:
+    database:
+      generation: drop-and-create
+    dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    migrate-at-start: true
+    locations: db/migration
+  log:
+    level: WARN
+  redis:
+    hosts: redis://localhost:6380
+
+mp:
+  jwt:
+    verify:
+      issuer: "resonant-app"
+      publickey:
+        location: "publicKey.pem"
+
+smallrye:
+  jwt:
+    new-token:
+      issuer: "resonant-app"
+    sign:
+      key:
+        location: "privateKey.pem"
+  log:
+    level: WARN
+
+app:
+  ratelimit:
+    enabled: false
+
