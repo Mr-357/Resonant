@@ -1,4 +1,4 @@
-# Resonant - Discord Clone
+# Resonant - Online messaging app
 
 A modern, production-grade Discord-like chat platform built with Quarkus, React, PostgreSQL, and Redis.
 
@@ -79,7 +79,6 @@ npm run dev
 │   │   ├── manifest.json       # PWA manifest
 │   │   └── service-worker.js   # Service worker
 │   └── Dockerfile
-├── migrations/                  # SQL migrations (also in backend/src/main/resources/db/migration)
 ├── k8s/                         # Kubernetes manifests
 ├── .github/workflows/           # CI/CD pipelines
 └── docker-compose.yml
@@ -104,39 +103,6 @@ app:
 
 For Kubernetes, update `k8s/configmap.yaml`.
 
-## Implementation Phases
-
-### Phase 1: Foundation ✓
-- [x] Initialize Quarkus and React projects
-- [x] PostgreSQL schema with indexes
-- [x] Redis configuration
-- [x] User entities and DTOs
-- [ ] Run locally and verify builds
-
-### Phase 2: Core API (In Progress)
-- [ ] Authentication endpoints
-- [ ] Server CRUD endpoints
-- [ ] Channel CRUD endpoints
-- [ ] Message polling endpoint
-- [ ] Rate limiting implementation
-
-### Phase 3: Frontend
-- [ ] Auth flow (login/register)
-- [ ] Server and channel UI
-- [ ] Message polling client
-- [ ] PWA capabilities
-
-### Phase 4: Advanced Features
-- [ ] WebSocket upgrade (optional)
-- [ ] Message editing/deletion
-- [ ] User presence tracking
-- [ ] Typing indicators
-
-### Phase 5: Deployment
-- [ ] Docker image optimization
-- [ ] Kubernetes deployment
-- [ ] GitHub Actions CI/CD
-- [ ] Health checks and monitoring
 
 ## Development Workflow
 
@@ -149,25 +115,7 @@ For Kubernetes, update `k8s/configmap.yaml`.
 
 ## API Documentation
 
-### Authentication
-- `POST /api/auth/register` — Register new user
-- `POST /api/auth/login` — Login user, returns JWT token
-
-### Servers
-- `GET /api/servers` — List user's servers
-- `POST /api/servers` — Create new server
-- `GET /api/servers/{id}` — Get server details
-- `DELETE /api/servers/{id}` — Delete server (owner only)
-
-### Channels (TBD)
-- `GET /api/servers/{serverId}/channels` — List channels
-- `POST /api/servers/{serverId}/channels` — Create channel
-- `DELETE /api/channels/{id}` — Delete channel
-
-### Messages (TBD)
-- `GET /api/channels/{channelId}/messages?since=timestamp&limit=50` — Poll messages
-- `POST /api/channels/{channelId}/messages` — Send message
-- `DELETE /api/messages/{id}` — Delete message (author only)
+Todo: swagger
 
 ## Deployment
 
@@ -217,11 +165,3 @@ Update `k8s/*.yaml` with image URLs and deploy.
 ## License
 
 Apache 2.0 - See [LICENSE](LICENSE)
-
-## Next Steps
-
-1. **Verify local build**: Run `docker-compose up --build` to test complete stack
-2. **Implement rate limiting**: Create interceptor for request throttling
-3. **Build channel/message resources**: Complete REST API
-4. **Connect frontend**: Implement API client and polling logic
-5. **Test end-to-end**: Register users, create servers, send messages
