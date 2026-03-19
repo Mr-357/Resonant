@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import axios from 'axios'
+import { channelAPI } from '../api/client'
 import './ChannelList.css'
 
 export default function ChannelList() {
   const [channels, setChannels] = useState([])
+  const [loading, setLoading] = useState(false)
   const { serverId, channelId } = useParams()
   const navigate = useNavigate()
 
@@ -16,13 +17,13 @@ export default function ChannelList() {
 
   const fetchChannels = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get(`/api/servers/${serverId}/channels`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      setLoading(true)
+      const response = await channelAPI.list(serverId)
       setChannels(response.data)
     } catch (err) {
       console.error('Failed to fetch channels:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -31,11 +32,9 @@ export default function ChannelList() {
     if (!name) return
 
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.post(`/api/servers/${serverId}/channels`, { name }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await channelAPI.create(serverId, name)
       setChannels([...channels, response.data])
+      navigate(`/dashboard/${serverId}/${response.data.id}`)
     } catch (err) {
       console.error('Failed to create channel:', err)
       alert('Failed to create channel')
@@ -63,7 +62,14 @@ export default function ChannelList() {
     <div className="channel-list">
       <div className="channels-header">
         <h3>Channels</h3>
-        <button className="add-channel-btn" onClick={handleCreateChannel} title="Add Channel">+</button>
+        <button 
+          className="add-channel-btn" 
+          onClick={handleCreateChannel} 
+          title="Add Channel"
+          disabled={loading}
+        >
+          +
+        </button>
       </div>
       <div className="channels">
         {channels.length === 0 ? (

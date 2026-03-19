@@ -18,7 +18,7 @@ export default function Dashboard({ currentUser, onLogout }) {
           <ChannelList />
         </div>
         <div className="messages-panel">
-          <MessageThread serverId={serverId} channelId={channelId} />
+          <MessageThread serverId={serverId} channelId={channelId} currentUser={currentUser} />
         </div>
       </div>
       <div className="user-panel">

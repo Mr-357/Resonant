@@ -26,23 +26,9 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  // API requests: network first, fallback to cache
+  // API requests: network only, don't cache
   if (event.request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          const clonedResponse = response.clone()
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, clonedResponse)
-          })
-          return response
-        })
-        .catch(() => {
-          return caches.match(event.request).then(response => {
-            return response || new Response('Offline - API unavailable', { status: 503 })
-          })
-        })
-    )
+    event.respondWith(fetch(event.request))
   } else {
     // Static assets: cache first, fallback to network
     event.respondWith(

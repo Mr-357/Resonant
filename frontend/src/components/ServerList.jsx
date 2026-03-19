@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import axios from 'axios'
+import { serverAPI } from '../api/client'
 import './ServerList.css'
 
 export default function ServerList({ currentUser }) {
   const [servers, setServers] = useState([])
+  const [loading, setLoading] = useState(false)
   const { serverId } = useParams()
   const navigate = useNavigate()
 
@@ -14,13 +15,13 @@ export default function ServerList({ currentUser }) {
 
   const fetchServers = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('/api/servers', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      setLoading(true)
+      const response = await serverAPI.list()
       setServers(response.data)
     } catch (err) {
       console.error('Failed to fetch servers:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -29,13 +30,12 @@ export default function ServerList({ currentUser }) {
     if (!name) return
 
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.post('/api/servers', { name }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await serverAPI.create(name)
       setServers([...servers, response.data])
+      navigate(`/dashboard/${response.data.id}`)
     } catch (err) {
       console.error('Failed to create server:', err)
+      alert('Failed to create server')
     }
   }
 
@@ -45,7 +45,7 @@ export default function ServerList({ currentUser }) {
 
   return (
     <div className="server-list">
-      <button className="server-button add-server" onClick={handleCreateServer} title="Add Server">
+      <button className="server-button add-server" onClick={handleCreateServer} title="Add Server" disabled={loading}>
         +
       </button>
       {servers.map(server => (

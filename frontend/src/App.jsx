@@ -2,20 +2,34 @@ import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import AuthForm from './components/AuthForm'
 import Dashboard from './components/Dashboard'
+import Loading from './components/Loading'
 import './App.css'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     // Check if user is already logged in
     const token = localStorage.getItem('token')
     const user = localStorage.getItem('currentUser')
     if (token && user) {
-      setIsAuthenticated(true)
-      setCurrentUser(JSON.parse(user))
+      try {
+        setIsAuthenticated(true)
+        setCurrentUser(JSON.parse(user))
+      } catch (err) {
+        console.error('Failed to parse user from localStorage:', err)
+        localStorage.removeItem('token')
+        localStorage.removeItem('currentUser')
+      }
     }
+    // Show loading screen for 1.5 seconds for better UX
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 1500)
+    
+    return () => clearTimeout(timer)
   }, [])
 
   const handleLogin = (token, user) => {
@@ -30,6 +44,10 @@ function App() {
     localStorage.removeItem('currentUser')
     setCurrentUser(null)
     setIsAuthenticated(false)
+  }
+
+  if (isLoading) {
+    return <Loading />
   }
 
   return (

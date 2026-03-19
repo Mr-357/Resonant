@@ -73,6 +73,35 @@ public class ChannelResource {
         }
     }
 
+    @GET
+    @Path("/{channelId}")
+    @Operation(summary = "Get a channel", description = "Retrieve a specific channel by ID")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "Channel details",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ChannelDTO.class))),
+        @APIResponse(responseCode = "404", description = "Channel not found")
+    })
+    public Response getChannel(
+        @Parameter(description = "Server ID", required = true)
+        @PathParam("serverId") Long serverId,
+        @Parameter(description = "Channel ID", required = true)
+        @PathParam("channelId") Long channelId) {
+        try {
+            Optional<Channel> channelOpt = channelRepository.findByIdOptional(channelId);
+            if (channelOpt.isEmpty() || !channelOpt.get().server.id.equals(serverId)) {
+                return Response.status(Response.Status.NOT_FOUND)
+                    .entity(new ErrorResponse("Channel not found"))
+                    .build();
+            }
+
+            return Response.ok(mapToDTO(channelOpt.get())).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
     @POST
     @RateLimit(key = "channel.create", limit = 5, windowSeconds = 60)
     @Transactional

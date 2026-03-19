@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import axios from 'axios'
+import { authAPI } from '../api/client'
 import './AuthForm.css'
 
 export default function AuthForm({ onLogin }) {
@@ -27,12 +27,13 @@ export default function AuthForm({ onLogin }) {
     setError('')
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register'
-      const payload = isLogin 
-        ? { username: formData.username, password: formData.password }
-        : formData
-
-      const response = await axios.post(endpoint, payload)
+      let response
+      if (isLogin) {
+        response = await authAPI.login(formData.username, formData.password)
+      } else {
+        response = await authAPI.register(formData.username, formData.email, formData.password)
+      }
+      
       const { userId, username, token } = response.data
 
       onLogin(token, { userId, username })

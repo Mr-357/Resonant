@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import axios from 'axios'
+import { messageAPI } from '../api/client'
 
 export function usePolling(channelId, callback, interval = 2000) {
   const pollingRef = useRef(null)
@@ -9,15 +9,14 @@ export function usePolling(channelId, callback, interval = 2000) {
 
     const poll = async () => {
       try {
-        const token = localStorage.getItem('token')
         const sinceTimestamp = localStorage.getItem(`channel_${channelId}_last_fetch`) || 0
         
-        const response = await axios.get(`/api/channels/${channelId}/messages`, {
-          params: { since: sinceTimestamp, limit: 50 },
-          headers: { Authorization: `Bearer ${token}` }
+        const response = await messageAPI.list(channelId, { 
+          since: sinceTimestamp, 
+          limit: 50 
         })
 
-        if (response.data.length > 0) {
+        if (response.data && response.data.length > 0) {
           callback(response.data)
           localStorage.setItem(
             `channel_${channelId}_last_fetch`,

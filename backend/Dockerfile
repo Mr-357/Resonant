@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM maven:3.9-eclipse-temurin-21 AS builder
+FROM maven:3.9-eclipse-temurin-25 AS builder
 WORKDIR /build
 COPY pom.xml .
 RUN mvn dependency:go-offline
@@ -15,7 +15,7 @@ RUN openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in rsaPrivateKey.pem
 RUN openssl rsa -in rsaPrivateKey.pem -pubout -outform PEM -out publicKey.pem
 
 # Stage 2: Runtime (JVM mode)
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 COPY --from=builder /build/target/quarkus-app/lib/ lib/
 COPY --from=builder /build/target/quarkus-app/*.jar .
