@@ -14,7 +14,8 @@ A modern, production-grade Discord-like chat platform built with Quarkus, React,
 - User authentication (username/password with JWT)
 - Create and manage servers
 - Create channels within servers
-- Real-time message polling (2-second intervals)
+- Real-time WebSocket messaging
+- Server Discovery and Join/Leave
 - PWA support (offline caching, desktop install)
 - Configurable rate limiting
 - Full containerization with docker-compose

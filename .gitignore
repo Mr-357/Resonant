@@ -37,4 +37,4 @@ yarn-error.log*
 Thumbs.db
 
 # Misc
-.github/PROJECT_STATUS.md
+.github/local_checklist/**
