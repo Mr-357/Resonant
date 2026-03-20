@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { usePolling } from '../hooks/usePolling'
 import { messageAPI, channelAPI, serverAPI } from '../api/client'
 import './MessageThread.css'
 
@@ -12,6 +11,8 @@ export default function MessageThread({ serverId, channelId, currentUser }) {
   const [serverName, setServerName] = useState('')
   const [isLoadingChannelInfo, setIsLoadingChannelInfo] = useState(false)
   const messagesEndRef = useRef(null)
+  const socketRef = useRef(null)
+  const [isConnected, setIsConnected] = useState(false)
 
   // Fetch channel and server names
   useEffect(() => {
@@ -23,8 +24,13 @@ export default function MessageThread({ serverId, channelId, currentUser }) {
         setIsLoadingChannelInfo(false)
         return
       }
-      // Clear messages when switching channels
-      setMessages([])
+      
+      // Load initial history via REST
+      try {
+        const history = await messageAPI.list(channelId, { limit: 50 });
+        setMessages(history.data.reverse()); // Assuming API returns newest first, or adjust sort below
+      } catch (e) { setMessages([]) }
+      
       setIsLoadingChannelInfo(true) // Show loading state
       
       try {
@@ -49,21 +55,62 @@ export default function MessageThread({ serverId, channelId, currentUser }) {
     }
     fetchChannelAndServerInfo()
   }, [serverId, channelId])
+  
+  // WebSocket Connection
+  useEffect(() => {
+    if (!channelId) return;
 
-  // Callback for polling to update messages
-  const handleMessagesUpdate = useCallback((newMessages) => {
-    setMessages(prev => {
-      // Merge new messages, avoiding duplicates
-      const existingIds = new Set(prev.map(m => m.id))
-      const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id))
-      return [...prev, ...uniqueNewMessages].sort((a, b) => 
-        new Date(a.createdAt) - new Date(b.createdAt)
-      )
-    })
-  }, [])
+    // Dynamic WebSocket URL based on API configuration
+    const getSocketUrl = () => {
+      const apiUrl = window.__API_URL__ || import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const wsProtocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
+      const host = apiUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      return `${wsProtocol}://${host}/chat/${channelId}`;
+    };
 
-  // Use polling hook for real-time messages
-  usePolling(channelId, handleMessagesUpdate, 2000)
+    const wsUrl = getSocketUrl();
+    const ws = new WebSocket(wsUrl);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('Connected to chat socket');
+      setIsConnected(true);
+      setError('');
+    };
+
+    ws.onerror = (e) => {
+      console.error('WebSocket error:', e);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.error) {
+          setError(message.error);
+          return;
+        }
+        setMessages(prev => {
+          // Avoid duplicates if backend echoes back history or similar
+          if (prev.find(m => m.id === message.id)) return prev;
+          return [...prev, message].sort((a, b) => 
+             new Date(a.createdAt) - new Date(b.createdAt)
+          );
+        });
+      } catch (e) {
+        console.error("Invalid WS message", e);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('Disconnected from chat socket');
+      setIsConnected(false);
+    };
+
+    return () => {
+      ws.close();
+      setIsConnected(false);
+    };
+  }, [channelId]);
 
   // Auto scroll to bottom when messages update
   useEffect(() => {
@@ -94,14 +141,17 @@ export default function MessageThread({ serverId, channelId, currentUser }) {
     setError('')
     
     try {
-      const response = await messageAPI.create(channelId, inputValue)
-      // Add current user info to the message if not present
-      const message = response.data
-      if (!message.author && currentUser) {
-        message.author = currentUser.username
+      // Send via WebSocket for real-time performance
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        const payload = {
+          content: inputValue,
+          token: localStorage.getItem('token') // Pass token for auth
+        };
+        socketRef.current.send(JSON.stringify(payload));
+        setInputValue(''); // Clear input immediately
+      } else {
+        setError('Connection lost. Reconnecting...');
       }
-      setMessages([...messages, message])
-      setInputValue('')
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send message')
       console.error('Error sending message:', err)
@@ -166,8 +216,8 @@ export default function MessageThread({ serverId, channelId, currentUser }) {
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             disabled={loading}
           />
-          <button onClick={handleSendMessage} disabled={loading || !inputValue.trim()}>
-            {loading ? 'Sending...' : 'Send'}
+          <button onClick={handleSendMessage} disabled={loading || !inputValue.trim() || !isConnected}>
+            {loading ? 'Sending...' : isConnected ? 'Send' : 'Connecting...'}
           </button>
         </div>
       </div>

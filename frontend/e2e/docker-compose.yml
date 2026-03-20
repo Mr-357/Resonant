@@ -47,8 +47,7 @@ services:
     depends_on:
       - backend
     environment:
-      # Points to the backend container internally
-      VITE_API_URL: http://backend:8080
+      VITE_API_URL: http://localhost:8080      
 
   e2e-tests:
     image: mcr.microsoft.com/playwright:v1.58.2-jammy

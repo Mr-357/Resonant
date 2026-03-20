@@ -84,6 +84,9 @@ test.describe('Resonant E2E Tests', () => {
     // 1. Populate Database
     const { user, server, channel, messageData } = await seedChatEnvironment(request);
 
+    // Inject the API URL for WebSocket connection in Docker environment
+    await page.addInitScript(`window.__API_URL__ = '${API_URL}';`);
+
     // 2. Login via UI
     await page.goto(`${APP_URL}/auth`);
     await page.getByRole('textbox', { name: 'Username' }).fill(user.username);
@@ -199,5 +202,64 @@ test.describe('Resonant E2E Tests', () => {
 
     // 7. Verify Server is gone from list
     await expect(page.getByRole('button', { name: targetServer.name.charAt(0), exact: true })).not.toBeVisible();
+  });
+
+  test('Users can exchange messages in real-time (WebSocket)', async ({ browser, request }) => {
+    // 1. Setup: User A creates environment (Server & Channel)
+    const { user: userA, server, channel } = await seedChatEnvironment(request);
+
+    // 2. Setup: Create User B
+    const timestamp = Date.now();
+    const userB = {
+      username: `realtime_${timestamp}`,
+      email: `realtime_${timestamp}@example.com`,
+      password: 'Password123!'
+    };
+    const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
+    const { token: tokenB } = await regResponse.json();
+
+    // 3. User B joins Server
+    await request.post(`${API_URL}/api/servers/${server.id}/join`, {
+      headers: { Authorization: `Bearer ${tokenB}` }
+    });
+
+    // 4. Create separate browser contexts for User A and User B
+    const contextA = await browser.newContext();
+    await contextA.addInitScript(`window.__API_URL__ = '${API_URL}';`);
+    const pageA = await contextA.newPage();
+    const contextB = await browser.newContext();
+    await contextB.addInitScript(`window.__API_URL__ = '${API_URL}';`);
+    const pageB = await contextB.newPage();
+
+    // 5. Login User A and go to channel
+    await pageA.goto(`${APP_URL}/auth`);
+    await pageA.getByRole('textbox', { name: 'Username' }).fill(userA.username);
+    await pageA.getByLabel('Password').fill(userA.password);
+    await pageA.getByRole('button', { name: 'Login' }).click();
+    // Nav
+    await pageA.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
+    await pageA.getByText(channel.name).click();
+
+    // 6. Login User B and go to same channel
+    await pageB.goto(`${APP_URL}/auth`);
+    await pageB.getByRole('textbox', { name: 'Username' }).fill(userB.username);
+    await pageB.getByLabel('Password').fill(userB.password);
+    await pageB.getByRole('button', { name: 'Login' }).click();
+    // Nav
+    await pageB.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
+    await pageB.getByText(channel.name).click();
+
+    // 7. User B sends message
+    const msgContent = `Instant message ${Date.now()}`;
+    await pageB.getByPlaceholder('Type a message...').fill(msgContent);
+    await pageB.getByRole('button', { name: 'Send' }).click();
+
+    // 8. Verify User A sees it immediately 
+    // We rely on standard Playwright auto-wait, but since it's WS, it should be fast.
+    await expect(pageA.getByText(msgContent)).toBeVisible();
+    
+    // Cleanup
+    await contextA.close();
+    await contextB.close();
   });
 });

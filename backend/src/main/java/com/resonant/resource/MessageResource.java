@@ -2,16 +2,11 @@ package com.resonant.resource;
 
 import com.resonant.dto.CreateMessageRequest;
 import com.resonant.dto.MessageDTO;
-import com.resonant.entity.Channel;
 import com.resonant.entity.Message;
-import com.resonant.entity.User;
-import com.resonant.repository.ChannelRepository;
-import com.resonant.repository.MessageRepository;
-import com.resonant.repository.UserRepository;
 import com.resonant.ratelimit.RateLimit;
+import com.resonant.service.MessageService;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -24,9 +19,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-import java.time.LocalDateTime;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -42,13 +34,7 @@ public class MessageResource {
     SecurityContext securityContext;
     
     @Inject
-    ChannelRepository channelRepository;
-    
-    @Inject
-    MessageRepository messageRepository;
-    
-    @Inject
-    UserRepository userRepository;
+    MessageService messageService;
 
     @GET
     @Operation(summary = "Get channel messages", description = "Retrieve messages from a channel with optional filtering by timestamp and limit")
@@ -66,36 +52,15 @@ public class MessageResource {
         @QueryParam("limit") @DefaultValue("50") int limit) {
         
         try {
-            Optional<Channel> channelOpt = channelRepository.findByIdOptional(channelId);
-            if (channelOpt.isEmpty()) {
-                return Response.status(Response.Status.NOT_FOUND)
-                    .entity(new ErrorResponse("Channel not found"))
-                    .build();
-            }
-            Channel channel = channelOpt.get();
+            List<Message> messages = messageService.getMessages(channelId, sinceTimestamp, limit);
+            
+            List<MessageDTO> dtos = messages.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
 
-            // Verify user is member of channel's server
-            verifyServerMembership(channel.server.id);
-
-            List<MessageDTO> messages;
-            if (sinceTimestamp != null && sinceTimestamp > 0) {
-                LocalDateTime since = Instant.ofEpochMilli(sinceTimestamp)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDateTime();
-                messages = messageRepository.findByChannelSinceNotDeleted(channelId, since)
-                    .stream()
-                    .limit(limit)
-                    .map(this::mapToDTO)
-                    .collect(Collectors.toList());
-            } else {
-                messages = messageRepository.findByChannelNotDeleted(channelId)
-                    .stream()
-                    .limit(limit)
-                    .map(this::mapToDTO)
-                    .collect(Collectors.toList());
-            }
-
-            return Response.ok(messages).build();
+            return Response.ok(dtos).build();
+        } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).entity(new ErrorResponse(e.getMessage())).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse(e.getMessage()))
@@ -105,7 +70,6 @@ public class MessageResource {
 
     @POST
     @RateLimit(key = "message.send", limit = 10, windowSeconds = 60)
-    @Transactional
     @Operation(summary = "Send a message", description = "Create a new message in a channel (rate limited to 10 per 60 seconds)")
     @APIResponses(value = {
         @APIResponse(responseCode = "201", description = "Message created successfully",
@@ -117,47 +81,18 @@ public class MessageResource {
         @Parameter(description = "Channel ID", required = true)
         @PathParam("channelId") Long channelId, CreateMessageRequest request) {
         try {
-            if (request.content == null || request.content.isBlank()) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ErrorResponse("Message content is required"))
-                    .build();
-            }
-
-            if (request.content.length() > 4000) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ErrorResponse("Message exceeds maximum length"))
-                    .build();
-            }
-
-            Optional<Channel> channelOpt = channelRepository.findByIdOptional(channelId);
-            if (channelOpt.isEmpty()) {
-                return Response.status(Response.Status.NOT_FOUND)
-                    .entity(new ErrorResponse("Channel not found"))
-                    .build();
-            }
-            Channel channel = channelOpt.get();
-
             Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
-            Optional<User> authorOpt = userRepository.findByIdOptional(userId);
-            if (authorOpt.isEmpty()) {
-                return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(new ErrorResponse("User not found"))
-                    .build();
-            }
-            User author = authorOpt.get();
-
-            // Verify user is member of channel's server
-            verifyServerMembership(channel.server.id);
-
-            Message message = new Message();
-            message.content = request.content;
-            message.channel = channel;
-            message.author = author;
-            messageRepository.persist(message);
+            Message message = messageService.create(channelId, request.content, userId);
 
             return Response.status(Response.Status.CREATED)
                 .entity(mapToDTO(message))
                 .build();
+        } catch (BadRequestException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(new ErrorResponse(e.getMessage())).build();
+        } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).entity(new ErrorResponse(e.getMessage())).build();
+        } catch (ForbiddenException e) {
+            return Response.status(Response.Status.FORBIDDEN).entity(new ErrorResponse(e.getMessage())).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse(e.getMessage()))
@@ -167,7 +102,6 @@ public class MessageResource {
 
     @DELETE
     @Path("/{messageId}")
-    @Transactional
     @Operation(summary = "Delete a message", description = "Delete a message (only message author can delete)")
     @APIResponses(value = {
         @APIResponse(responseCode = "204", description = "Message deleted successfully"),
@@ -180,39 +114,19 @@ public class MessageResource {
         @Parameter(description = "Message ID", required = true)
         @PathParam("messageId") Long messageId) {
         try {
-            Optional<Message> messageOpt = messageRepository.findByIdOptional(messageId);
-            if (messageOpt.isEmpty() || !messageOpt.get().channel.id.equals(channelId)) {
-                return Response.status(Response.Status.NOT_FOUND)
-                    .entity(new ErrorResponse("Message not found"))
-                    .build();
-            }
-            Message message = messageOpt.get();
-
             Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
-            if (!message.author.id.equals(userId)) {
-                return Response.status(Response.Status.FORBIDDEN)
-                    .entity(new ErrorResponse("Only message author can delete it"))
-                    .build();
-            }
-
-            message.isDeleted = true;
-            messageRepository.persist(message);
+            messageService.delete(channelId, messageId, userId);
 
             return Response.noContent().build();
+        } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).entity(new ErrorResponse(e.getMessage())).build();
+        } catch (ForbiddenException e) {
+            return Response.status(Response.Status.FORBIDDEN).entity(new ErrorResponse(e.getMessage())).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse(e.getMessage()))
                 .build();
         }
-    }
-
-    private void verifyServerMembership(Long serverId) throws Exception {
-        Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
-        Optional<User> userOpt = userRepository.findByIdOptional(userId);
-        if (userOpt.isEmpty()) {
-            throw new Exception("User not found");
-        }
-        // TODO: Check if user is member of server
     }
 
     private MessageDTO mapToDTO(Message message) {
