@@ -46,6 +46,10 @@ public class ServerService {
         return serverRepository.findServersForUser(userId);
     }
 
+    public List<Server> getAllServers() {
+        return serverRepository.listAll();
+    }
+
     public Server getServer(Long serverId) throws Exception {
         Optional<Server> server = serverRepository.findByIdOptional(serverId);
         if (server.isEmpty()) {
@@ -67,5 +71,41 @@ public class ServerService {
         }
 
         serverRepository.delete(server);
+    }
+
+    @Transactional
+    public void joinServer(Long serverId, Long userId) throws Exception {
+        Server server = getServer(serverId);
+
+        Optional<User> userOpt = userRepository.findByIdOptional(userId);
+        if (userOpt.isEmpty()) {
+            throw new Exception("User not found");
+        }
+        User user = userOpt.get();
+
+        if (server.owner.id.equals(userId) || user.servers.stream().anyMatch(s -> s.id.equals(serverId))) {
+            throw new Exception("You are already a member or owner of this server");
+        }
+
+        user.servers.add(server);
+    }
+
+    @Transactional
+    public void leaveServer(Long serverId, Long userId) throws Exception {
+        Server server = getServer(serverId);
+
+        Optional<User> userOpt = userRepository.findByIdOptional(userId);
+        if (userOpt.isEmpty()) {
+            throw new Exception("User not found");
+        }
+        User user = userOpt.get();
+
+        if (server.owner.id.equals(userId)) {
+            throw new Exception("Owner cannot leave the server. You must delete it instead.");
+        }
+
+        if (!user.servers.removeIf(s -> s.id.equals(serverId))) {
+            throw new Exception("You are not a member of this server.");
+        }
     }
 }

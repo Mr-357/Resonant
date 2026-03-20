@@ -119,4 +119,85 @@ test.describe('Resonant E2E Tests', () => {
     // Verify the new message appears immediately
     await expect(page.getByText(newMessageContent)).toBeVisible();
   });
+
+  test('User can discover and join a server', async ({ page, request }) => {
+    // 1. Setup: Create User A and Server A (The target)
+    const { server: targetServer } = await seedChatEnvironment(request);
+
+    // 2. Setup: Create User B (The joiner)
+    const timestamp = Date.now();
+    const userB = {
+      username: `joiner_${timestamp}`,
+      email: `joiner_${timestamp}@example.com`,
+      password: 'Password123!'
+    };
+    const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
+    expect(regResponse.ok()).toBeTruthy();
+
+    // 3. Login as User B
+    await page.goto(`${APP_URL}/auth`);
+    await page.getByRole('textbox', { name: 'Username' }).fill(userB.username);
+    await page.getByLabel('Password').fill(userB.password);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // 4. Open Discovery
+    await page.getByTitle('Explore Servers').click();
+
+    // 5. Verify Server A is listed
+    // The original selector was too generic. This one scopes the search to a specific row inside the discovery list.
+    // Using exact text match for the name and .first() ensures robust selection.
+    const serverRow = page.locator('.server-discovery-list > div').filter({ has: page.getByText(targetServer.name, { exact: true }) }).first();
+    const joinButton = serverRow.getByRole('button', { name: 'Join' });
+    await expect(joinButton).toBeVisible();
+
+    // 6. Join Server A
+    await joinButton.click();
+
+    // 7. Verify navigation and sidebar update
+    await expect(page).toHaveURL(new RegExp(`/dashboard/${targetServer.id}`));
+    await expect(page.getByTitle(targetServer.name)).toBeVisible();
+
+    // 8. Open Discovery again and verify Server A is gone
+    await page.getByTitle('Explore Servers').click();
+    await expect(serverRow).not.toBeVisible();
+  });
+
+  test('User can leave a joined server', async ({ page, request }) => {
+    // 1. Setup: Create User A and Server A (target)
+    const { server: targetServer } = await seedChatEnvironment(request);
+
+    // 2. Setup: Create User B
+    const timestamp = Date.now();
+    const userB = {
+      username: `leaver_${timestamp}`,
+      email: `leaver_${timestamp}@example.com`,
+      password: 'Password123!'
+    };
+    const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
+    const { token: userBToken } = await regResponse.json();
+
+    // 3. User B joins Server A via API (to speed up test)
+    const joinResponse = await request.post(`${API_URL}/api/servers/${targetServer.id}/join`, {
+      headers: { Authorization: `Bearer ${userBToken}` }
+    });
+    expect(joinResponse.ok()).toBeTruthy();
+
+    // 4. Login as User B
+    await page.goto(`${APP_URL}/auth`);
+    await page.getByRole('textbox', { name: 'Username' }).fill(userB.username);
+    await page.getByLabel('Password').fill(userB.password);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // 5. Select the server and verify name is shown
+    await page.getByRole('button', { name: targetServer.name.charAt(0), exact: true }).click();
+    // Use specific class to avoid ambiguity with header text
+    await expect(page.locator('.active-server-name')).toHaveText(targetServer.name);
+
+    // 6. Leave the server (Handle confirm dialog)
+    page.on('dialog', dialog => dialog.accept());
+    await page.locator('.leave-server-btn').click();
+
+    // 7. Verify Server is gone from list
+    await expect(page.getByRole('button', { name: targetServer.name.charAt(0), exact: true })).not.toBeVisible();
+  });
 });

@@ -47,12 +47,15 @@ export const authAPI = {
 // Server endpoints
 export const serverAPI = {
   list: () => apiClient.get('/api/servers'),
+  listAll: () => apiClient.get('/api/servers/all'),
   create: (name, description = '') =>
     apiClient.post('/api/servers', { name, description }),
   get: (serverId) => apiClient.get(`/api/servers/${serverId}`),
   update: (serverId, name, description) =>
     apiClient.put(`/api/servers/${serverId}`, { name, description }),
   delete: (serverId) => apiClient.delete(`/api/servers/${serverId}`),
+  join: (serverId) => apiClient.post(`/api/servers/${serverId}/join`),
+  leave: (serverId) => apiClient.post(`/api/servers/${serverId}/leave`),
   addMember: (serverId, userId) =>
     apiClient.post(`/api/servers/${serverId}/members`, { userId }),
   removeMember: (serverId, userId) =>

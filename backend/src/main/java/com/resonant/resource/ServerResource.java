@@ -84,6 +84,55 @@ public class ServerResource {
         }
     }
 
+    @GET
+    @Path("/all")
+    @Operation(summary = "Get all servers", description = "Retrieve a list of all available servers")
+    @APIResponse(responseCode = "200", description = "List of all servers",
+        content = @Content(mediaType = "application/json", schema = @Schema(implementation = Server.class)))
+    public Response getAllServers() {
+        return Response.ok(serverService.getAllServers()).build();
+    }
+
+    @POST
+    @Path("/{serverId}/join")
+    @Operation(summary = "Join a server", description = "Add the authenticated user to a server's member list")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "Joined successfully"),
+        @APIResponse(responseCode = "400", description = "Already a member or other error"),
+        @APIResponse(responseCode = "404", description = "Server not found")
+    })
+    public Response joinServer(@PathParam("serverId") Long serverId) {
+        try {
+            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            serverService.joinServer(serverId, userId);
+            return Response.ok().build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
+    @POST
+    @Path("/{serverId}/leave")
+    @Operation(summary = "Leave a server", description = "Remove the authenticated user from a server's member list")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "Left successfully"),
+        @APIResponse(responseCode = "400", description = "Cannot leave server (e.g., you are the owner)"),
+        @APIResponse(responseCode = "404", description = "Server not found")
+    })
+    public Response leaveServer(@PathParam("serverId") Long serverId) {
+        try {
+            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            serverService.leaveServer(serverId, userId);
+            return Response.ok().build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
     @DELETE
     @Path("/{serverId}")
     @Operation(summary = "Delete a server", description = "Delete a server (only owner can delete)")
