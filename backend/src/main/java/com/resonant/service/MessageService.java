@@ -6,6 +6,7 @@ import com.resonant.entity.User;
 import com.resonant.repository.ChannelRepository;
 import com.resonant.repository.MessageRepository;
 import com.resonant.repository.UserRepository;
+import com.resonant.socket.MessageSocket;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -29,6 +30,9 @@ public class MessageService {
 
     @Inject
     UserRepository userRepository;
+
+    @Inject
+    MessageSocket messageSocket;
 
     public List<Message> getMessages(Long channelId, Long sinceTimestamp, int limit) {
         if (channelRepository.findByIdOptional(channelId).isEmpty()) {
@@ -60,7 +64,9 @@ public class MessageService {
         User author = userRepository.findByIdOptional(userId)
             .orElseThrow(() -> new ForbiddenException("User not found"));
 
-        return persistMessage(content, channel, author);
+        Message message = persistMessage(content, channel, author);
+        messageSocket.broadcast(channelId, message);
+        return message;
     }
 
     @Transactional
@@ -75,7 +81,26 @@ public class MessageService {
             throw new ForbiddenException("User not found");
         }
 
-        return persistMessage(content, channel, author);
+        Message message = persistMessage(content, channel, author);
+        messageSocket.broadcast(channelId, message);
+        return message;
+    }
+
+    @Transactional
+    public Message update(Long channelId, Long messageId, String content, Long userId) {
+        validateContent(content);
+
+        Message message = messageRepository.findByIdOptional(messageId)
+            .filter(m -> m.channel.id.equals(channelId))
+            .orElseThrow(() -> new NotFoundException("Message not found"));
+
+        if (!message.author.id.equals(userId)) {
+            throw new ForbiddenException("Only message author can update it");
+        }
+
+        message.content = content;
+        messageSocket.broadcast(channelId, message); // Broadcast update
+        return message;
     }
 
     @Transactional

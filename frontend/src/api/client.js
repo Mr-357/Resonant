@@ -85,6 +85,8 @@ export const messageAPI = {
     apiClient.get(`/api/channels/${channelId}/messages`, { params }),
   create: (channelId, content) =>
     apiClient.post(`/api/channels/${channelId}/messages`, { content }),
+  update: (channelId, messageId, content) =>
+    apiClient.patch(`/api/channels/${channelId}/messages/${messageId}`, { content }),
   delete: (channelId, messageId) =>
     apiClient.delete(`/api/channels/${channelId}/messages/${messageId}`),
 }

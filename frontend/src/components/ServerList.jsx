@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
 import { serverAPI } from '../api/client'
 import './ServerList.css'
+import Modal from './Modal'
 
-export default function ServerList({ currentUser }) {
+export default function ServerList({ currentUser, activeServerId, onServerSelect }) {
   const [servers, setServers] = useState([])
   const [loading, setLoading] = useState(false)
   const [showDiscovery, setShowDiscovery] = useState(false)
   const [allServers, setAllServers] = useState([])
   const [discoveryLoading, setDiscoveryLoading] = useState(false)
-  const { serverId } = useParams()
-  const navigate = useNavigate()
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newServerName, setNewServerName] = useState('')
+  const [serverToLeave, setServerToLeave] = useState(null)
 
   useEffect(() => {
     fetchServers()
@@ -28,14 +29,16 @@ export default function ServerList({ currentUser }) {
     }
   }
 
-  const handleCreateServer = async () => {
-    const name = prompt('Server name:')
-    if (!name) return
+  const handleCreateServerSubmit = async (e) => {
+    e.preventDefault()
+    if (!newServerName.trim()) return
 
     try {
-      const response = await serverAPI.create(name)
+      const response = await serverAPI.create(newServerName)
       setServers([...servers, response.data])
-      navigate(`/dashboard/${response.data.id}`)
+      onServerSelect(response.data.id)
+      setShowCreateModal(false)
+      setNewServerName('')
     } catch (err) {
       console.error('Failed to create server:', err)
       alert('Failed to create server')
@@ -64,21 +67,24 @@ export default function ServerList({ currentUser }) {
       await serverAPI.join(targetServerId)
       setShowDiscovery(false)
       await fetchServers() // Refresh the user's list
-      navigate(`/dashboard/${targetServerId}`)
+      onServerSelect(targetServerId)
     } catch (err) {
       alert('Failed to join server: ' + (err.response?.data?.error || err.message))
     }
   }
 
-  const handleLeaveServer = async (id) => {
-    if (!window.confirm('Are you sure you want to leave this server?')) return
+  const confirmLeaveServer = async () => {
+    if (!serverToLeave) return
+
     try {
-      await serverAPI.leave(id)
-      setServers(prev => prev.filter(s => s.id !== id))
-      navigate('/')
+      await serverAPI.leave(serverToLeave.id)
+      setServers(prev => prev.filter(s => s.id !== serverToLeave.id))
+      onServerSelect(null)
     } catch (err) {
       console.error('Failed to leave server:', err)
       alert('Failed to leave server: ' + (err.response?.data?.error || err.message))
+    } finally {
+      setServerToLeave(null)
     }
   }
 
@@ -95,16 +101,16 @@ export default function ServerList({ currentUser }) {
   const effectiveUser = getEffectiveUser()
 
   // Determine the active server object
-  const activeServer = servers.find(s => String(s.id) === serverId)
+  const activeServer = servers.find(s => s.id === activeServerId)
 
   const handleSelectServer = (id) => {
-    navigate(`/dashboard/${id}`)
+    onServerSelect(id)
   }
 
   return (
     <div className="server-list">
-      <button className="server-button add-server" onClick={handleCreateServer} title="Add Server" disabled={loading}>
-        +
+      <button className="server-button add-server" onClick={() => setShowCreateModal(true)} title="Add Server" disabled={loading}>
+        ➕
       </button>
       <button className="server-button explore-server" onClick={handleOpenDiscovery} title="Explore Servers">
         🧭
@@ -112,7 +118,7 @@ export default function ServerList({ currentUser }) {
       {servers.map(server => (
         <button
           key={server.id}
-          className={`server-button ${serverId === String(server.id) ? 'active' : ''}`}
+          className={`server-button ${activeServerId === server.id ? 'active' : ''}`}
           onClick={() => handleSelectServer(server.id)}
           title={server.name}
         >
@@ -128,11 +134,11 @@ export default function ServerList({ currentUser }) {
           {effectiveUser && activeServer.owner && String(activeServer.owner.id) !== String(effectiveUser.id) && (
             <button
               className="leave-server-btn"
-              onClick={() => handleLeaveServer(activeServer.id)}
-              style={{ backgroundColor: '#ed4245', color: 'white', border: 'none', borderRadius: '3px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer' }}
+              onClick={() => setServerToLeave(activeServer)}
+              style={{  color: 'none', backgroundColor: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer' }}
               title="Leave Server"
             >
-              Leave
+              ⏏️
             </button>
           )}
         </div>
@@ -174,6 +180,39 @@ export default function ServerList({ currentUser }) {
           </div>
         </div>
       )}
+
+      <Modal 
+        isOpen={showCreateModal} 
+        onClose={() => setShowCreateModal(false)} 
+        title="Create a Server"
+      >
+        <form onSubmit={handleCreateServerSubmit}>
+          <input 
+            type="text" 
+            placeholder="Server name" 
+            value={newServerName}
+            onChange={(e) => setNewServerName(e.target.value)}
+            style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '3px', border: 'none', backgroundColor: '#202225', color: 'white' }}
+            autoFocus
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
+            <button type="submit" disabled={!newServerName.trim()} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#5865F2', color: 'white' }}>Create</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal 
+        isOpen={!!serverToLeave} 
+        onClose={() => setServerToLeave(null)} 
+        title="Leave Server"
+      >
+        <p>Are you sure you want to leave <strong>{serverToLeave?.name}</strong>?</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button onClick={() => setServerToLeave(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={confirmLeaveServer} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#ed4245', color: 'white' }}>Leave Server</button>
+        </div>
+      </Modal>
     </div>
   )
 }

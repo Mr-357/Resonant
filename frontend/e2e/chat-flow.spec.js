@@ -11,9 +11,10 @@ test.describe('Resonant E2E Tests', () => {
   // avoiding the need to manually click through creation steps every time.
   async function seedChatEnvironment(request) {
     const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
     const user = {
-      username: `e2e_user_${timestamp}`,
-      email: `e2e_${timestamp}@example.com`,
+      username: `e2e_user_${timestamp}_${random}`,
+      email: `e2e_${timestamp}_${random}@example.com`,
       password: 'Password123!'
     };
 
@@ -55,9 +56,10 @@ test.describe('Resonant E2E Tests', () => {
 
   test('User can register a new account', async ({ page }) => {
     const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
     const newUser = {
-      username: `new_user_${timestamp}`,
-      email: `new_${timestamp}@example.com`,
+      username: `new_user_${timestamp}_${random}`,
+      email: `new_${timestamp}_${random}@example.com`,
       password: 'Password123!'
     };
 
@@ -108,19 +110,19 @@ test.describe('Resonant E2E Tests', () => {
     // Click the channel
     await page.getByText(channel.name).click();
 
-    // 5. Check Header & Previous Messages
-    // Based on MessageThread.jsx: <h2>... ${serverName} > #${channelName}</h2>
-    await expect(page.locator('h2')).toContainText(`${server.name} > #${channel.name}`);
+    // 5. Check Previous Messages
     // Verify the historical message exists
     await expect(page.getByText(messageData.content)).toBeVisible();
 
     // 6. Send a New Message
     const newMessageContent = `Live browser message ${Date.now()}`;
-    await page.getByPlaceholder('Type a message...').fill(newMessageContent);
+    await page.getByPlaceholder(/Message #/).fill(newMessageContent);
     await page.getByRole('button', { name: 'Send' }).click();
 
     // Verify the new message appears immediately
-    await expect(page.getByText(newMessageContent)).toBeVisible();
+    const messageItem = page.locator('.message-item', { hasText: newMessageContent });
+    await expect(messageItem).toBeVisible();
+    await expect(messageItem.locator('.author-name')).toHaveText(user.username);
   });
 
   test('User can discover and join a server', async ({ page, request }) => {
@@ -129,9 +131,10 @@ test.describe('Resonant E2E Tests', () => {
 
     // 2. Setup: Create User B (The joiner)
     const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
     const userB = {
-      username: `joiner_${timestamp}`,
-      email: `joiner_${timestamp}@example.com`,
+      username: `joiner_${timestamp}_${random}`,
+      email: `joiner_${timestamp}_${random}@example.com`,
       password: 'Password123!'
     };
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
@@ -157,7 +160,6 @@ test.describe('Resonant E2E Tests', () => {
     await joinButton.click();
 
     // 7. Verify navigation and sidebar update
-    await expect(page).toHaveURL(new RegExp(`/dashboard/${targetServer.id}`));
     await expect(page.getByTitle(targetServer.name)).toBeVisible();
 
     // 8. Open Discovery again and verify Server A is gone
@@ -171,9 +173,10 @@ test.describe('Resonant E2E Tests', () => {
 
     // 2. Setup: Create User B
     const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
     const userB = {
-      username: `leaver_${timestamp}`,
-      email: `leaver_${timestamp}@example.com`,
+      username: `leaver_${timestamp}_${random}`,
+      email: `leaver_${timestamp}_${random}@example.com`,
       password: 'Password123!'
     };
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
@@ -196,9 +199,13 @@ test.describe('Resonant E2E Tests', () => {
     // Use specific class to avoid ambiguity with header text
     await expect(page.locator('.active-server-name')).toHaveText(targetServer.name);
 
-    // 6. Leave the server (Handle confirm dialog)
-    page.on('dialog', dialog => dialog.accept());
+    // 6. Leave the server (Handle confirm modal)
     await page.locator('.leave-server-btn').click();
+    // Use a specific selector for the modal content to ensure we click the confirm button, not the trigger
+    const modal = page.locator('.modal-content');
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText(`Are you sure you want to leave ${targetServer.name}?`);
+    await modal.getByRole('button', { name: 'Leave Server' }).click();
 
     // 7. Verify Server is gone from list
     await expect(page.getByRole('button', { name: targetServer.name.charAt(0), exact: true })).not.toBeVisible();
@@ -210,9 +217,10 @@ test.describe('Resonant E2E Tests', () => {
 
     // 2. Setup: Create User B
     const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
     const userB = {
-      username: `realtime_${timestamp}`,
-      email: `realtime_${timestamp}@example.com`,
+      username: `realtime_${timestamp}_${random}`,
+      email: `realtime_${timestamp}_${random}@example.com`,
       password: 'Password123!'
     };
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
@@ -251,15 +259,67 @@ test.describe('Resonant E2E Tests', () => {
 
     // 7. User B sends message
     const msgContent = `Instant message ${Date.now()}`;
-    await pageB.getByPlaceholder('Type a message...').fill(msgContent);
+    await pageB.getByPlaceholder(/Message #/).fill(msgContent);
     await pageB.getByRole('button', { name: 'Send' }).click();
 
     // 8. Verify User A sees it immediately 
     // We rely on standard Playwright auto-wait, but since it's WS, it should be fast.
-    await expect(pageA.getByText(msgContent)).toBeVisible();
+    const messageItem = pageA.locator('.message-item', { hasText: msgContent });
+    await expect(messageItem).toBeVisible();
+    await expect(messageItem.locator('.author-name')).toHaveText(userB.username);
     
     // Cleanup
     await contextA.close();
     await contextB.close();
+  });
+
+  test('User can manage messages (edit, delete, emoji)', async ({ page, request }) => {
+    const { user, server, channel } = await seedChatEnvironment(request);
+
+    // 1. Login
+    await page.goto(`${APP_URL}/auth`);
+    await page.getByRole('textbox', { name: 'Username' }).fill(user.username);
+    await page.getByLabel('Password').fill(user.password);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // 2. Navigate to channel
+    await page.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
+    await page.getByText(channel.name).click();
+
+    // 3. Test Emoji Picker
+    await page.locator('.emoji-btn').click();
+    await expect(page.locator('.emoji-picker-container')).toBeVisible();
+    
+    // Click an actual emoji button (using class specific to emoji-picker-react)
+    const firstEmoji = page.locator('.emoji-picker-container button.epr-emoji').first();
+    await expect(firstEmoji).toBeVisible();
+    await firstEmoji.click();
+    // Send message with emoji
+    await page.getByRole('button', { name: 'Send' }).click();
+    // Verify emoji is in the message list (checking for generic emoji presence or specific text if known)
+    await expect(page.locator('.message-content').last()).not.toBeEmpty();
+
+    // 4. Test Edit Message
+    const initialText = `Edit me ${Date.now()}`;
+    await page.getByPlaceholder(/Message #/).fill(initialText);
+    await page.getByRole('button', { name: 'Send' }).click();
+    // Wait for message to appear to ensure DOM is stable
+    await expect(page.getByText(initialText)).toBeVisible();
+    
+    // Hover/Find the message and click edit (assuming button is visible or appears on hover)
+    // For test stability, we might force click or ensure visibility
+    const messageItem = page.locator('.message-item', { hasText: initialText });
+    await messageItem.hover();
+    await messageItem.locator('button[title="Edit"]').click({ force: true });
+    await page.locator('.edit-message-form input').fill(initialText + ' - edited');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText(initialText + ' - edited')).toBeVisible();
+
+    // 5. Test Delete Message
+    page.on('dialog', dialog => dialog.accept()); // Handle browser confirm
+    const editedMessageItem = page.locator('.message-item', { hasText: initialText + ' - edited' });
+    await editedMessageItem.hover();
+    await editedMessageItem.locator('button[title="Delete"]').click({ force: true });
+    await expect(page.getByText(initialText + ' - edited')).not.toBeVisible();
   });
 });

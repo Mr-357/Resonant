@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
 import { channelAPI } from '../api/client'
 import './ChannelList.css'
+import Modal from './Modal'
 
-export default function ChannelList() {
+export default function ChannelList({ serverId, activeChannelId, onChannelSelect }) {
   const [channels, setChannels] = useState([])
   const [loading, setLoading] = useState(false)
-  const { serverId, channelId } = useParams()
-  const navigate = useNavigate()
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newChannelName, setNewChannelName] = useState('')
 
   useEffect(() => {
     if (serverId) {
@@ -27,22 +27,24 @@ export default function ChannelList() {
     }
   }
 
-  const handleCreateChannel = async () => {
-    const name = prompt('Channel name:')
-    if (!name) return
+  const handleCreateChannelSubmit = async (e) => {
+    e.preventDefault()
+    if (!newChannelName.trim()) return
 
     try {
-      const response = await channelAPI.create(serverId, name)
+      const response = await channelAPI.create(serverId, newChannelName)
       setChannels([...channels, response.data])
-      navigate(`/dashboard/${serverId}/${response.data.id}`)
+      onChannelSelect(response.data)
+      setShowCreateModal(false)
+      setNewChannelName('')
     } catch (err) {
       console.error('Failed to create channel:', err)
       alert('Failed to create channel')
     }
   }
 
-  const handleSelectChannel = (id) => {
-    navigate(`/dashboard/${serverId}/${id}`)
+  const handleSelectChannel = (channel) => {
+    onChannelSelect(channel)
   }
 
   if (!serverId) {
@@ -64,7 +66,7 @@ export default function ChannelList() {
         <h3>Channels</h3>
         <button 
           className="add-channel-btn" 
-          onClick={handleCreateChannel} 
+          onClick={() => setShowCreateModal(true)} 
           title="Add Channel"
           disabled={loading}
         >
@@ -78,14 +80,35 @@ export default function ChannelList() {
           channels.map(channel => (
             <button
               key={channel.id}
-              className={`channel-item ${channelId === String(channel.id) ? 'active' : ''}`}
-              onClick={() => handleSelectChannel(channel.id)}
+              className={`channel-item ${activeChannelId === channel.id ? 'active' : ''}`}
+              onClick={() => handleSelectChannel(channel)}
             >
               # {channel.name}
             </button>
           ))
         )}
       </div>
+
+      <Modal 
+        isOpen={showCreateModal} 
+        onClose={() => setShowCreateModal(false)} 
+        title="Create Channel"
+      >
+        <form onSubmit={handleCreateChannelSubmit}>
+          <input 
+            type="text" 
+            placeholder="Channel name" 
+            value={newChannelName}
+            onChange={(e) => setNewChannelName(e.target.value)}
+            style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '3px', border: 'none', backgroundColor: '#202225', color: 'white' }}
+            autoFocus
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
+            <button type="submit" disabled={!newChannelName.trim()} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#5865F2', color: 'white' }}>Create</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

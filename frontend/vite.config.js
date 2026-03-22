@@ -10,7 +10,12 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true
       }
-    }
+    },
+      '/chat': {
+        target: 'ws://localhost:8080',
+        ws: true,
+        changeOrigin: true,
+      }
   },
   build: {
     outDir: 'dist',

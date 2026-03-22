@@ -1,226 +1,219 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { messageAPI, channelAPI, serverAPI } from '../api/client'
-import './MessageThread.css'
+import React, { useState, useEffect, useRef } from 'react'
+import EmojiPicker from 'emoji-picker-react'
+import { messageAPI } from '../api/client'
+import './MessageThread.css' // Assuming you have or will create this CSS
 
-export default function MessageThread({ serverId, channelId, currentUser }) {
+export default function MessageThread({ serverId, channel, currentUser }) {
   const [messages, setMessages] = useState([])
-  const [inputValue, setInputValue] = useState('')
+  const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [channelName, setChannelName] = useState('')
-  const [serverName, setServerName] = useState('')
-  const [isLoadingChannelInfo, setIsLoadingChannelInfo] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState(null)
+  const [editContent, setEditContent] = useState('')
   const messagesEndRef = useRef(null)
   const socketRef = useRef(null)
-  const [isConnected, setIsConnected] = useState(false)
 
-  // Fetch channel and server names
   useEffect(() => {
-    const fetchChannelAndServerInfo = async () => {
-      if (!serverId || !channelId) {
-        setChannelName('')
-        setServerName('')
-        setMessages([]) // Clear messages when no channel selected
-        setIsLoadingChannelInfo(false)
-        return
-      }
-      
-      // Load initial history via REST
-      try {
-        const history = await messageAPI.list(channelId, { limit: 50 });
-        setMessages(history.data.reverse()); // Assuming API returns newest first, or adjust sort below
-      } catch (e) { setMessages([]) }
-      
-      setIsLoadingChannelInfo(true) // Show loading state
-      
-      try {
-        // Fetch channel info
-        const channelResponse = await channelAPI.get(serverId, channelId)
-        const chName = channelResponse.data.name || 'Unknown'
-        setChannelName(chName)
-        console.log('Channel fetched:', chName)
-
-        // Fetch server info
-        const serverResponse = await serverAPI.get(serverId)
-        const sName = serverResponse.data.name || 'Unknown'
-        setServerName(sName)
-        console.log('Server fetched:', sName)
-        setIsLoadingChannelInfo(false)
-      } catch (err) {
-        console.error('Failed to fetch channel/server info:', err)
-        setChannelName('Error')
-        setServerName('Error')
-        setIsLoadingChannelInfo(false)
+    if (serverId && channel?.id) {
+      fetchMessages()
+      setupWebSocket()
+    }
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close()
       }
     }
-    fetchChannelAndServerInfo()
-  }, [serverId, channelId])
-  
-  // WebSocket Connection
+  }, [serverId, channel?.id])
+
   useEffect(() => {
-    if (!channelId) return;
-
-    // Dynamic WebSocket URL based on API configuration
-    const getSocketUrl = () => {
-      const apiUrl = window.__API_URL__ || import.meta.env.VITE_API_URL || 'http://localhost:8080';
-      const wsProtocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
-      const host = apiUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
-      return `${wsProtocol}://${host}/chat/${channelId}`;
-    };
-
-    const wsUrl = getSocketUrl();
-    const ws = new WebSocket(wsUrl);
-    socketRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('Connected to chat socket');
-      setIsConnected(true);
-      setError('');
-    };
-
-    ws.onerror = (e) => {
-      console.error('WebSocket error:', e);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message.error) {
-          setError(message.error);
-          return;
-        }
-        setMessages(prev => {
-          // Avoid duplicates if backend echoes back history or similar
-          if (prev.find(m => m.id === message.id)) return prev;
-          return [...prev, message].sort((a, b) => 
-             new Date(a.createdAt) - new Date(b.createdAt)
-          );
-        });
-      } catch (e) {
-        console.error("Invalid WS message", e);
-      }
-    };
-
-    ws.onclose = () => {
-      console.log('Disconnected from chat socket');
-      setIsConnected(false);
-    };
-
-    return () => {
-      ws.close();
-      setIsConnected(false);
-    };
-  }, [channelId]);
-
-  // Auto scroll to bottom when messages update
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    scrollToBottom()
   }, [messages])
 
-  const formatMessageTime = (createdAt) => {
-    const date = new Date(createdAt)
-    const today = new Date()
-    const isToday = date.toDateString() === today.toDateString()
-    
-    if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    } else {
-      return date.toLocaleString([], { 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
-    }
-  }
-
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || !channelId) return
-    
-    setLoading(true)
-    setError('')
-    
+  const fetchMessages = async () => {
     try {
-      // Send via WebSocket for real-time performance
-      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-        const payload = {
-          content: inputValue,
-          token: localStorage.getItem('token') // Pass token for auth
-        };
-        socketRef.current.send(JSON.stringify(payload));
-        setInputValue(''); // Clear input immediately
-      } else {
-        setError('Connection lost. Reconnecting...');
-      }
+      setLoading(true)
+      const response = await messageAPI.list(channel.id)
+      // Assuming API returns a list or page object. Adjust if needed.
+      setMessages(Array.isArray(response.data) ? response.data : response.data.content || [])
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send message')
-      console.error('Error sending message:', err)
+      console.error('Failed to fetch messages:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  if (!channelId) {
-    return (
-      <div className="message-thread">
-        <div className="no-channel">
-          <p>Select a channel to start messaging</p>
-        </div>
-      </div>
-    )
+  const setupWebSocket = () => {
+    if (socketRef.current) {
+      socketRef.current.close()
+    }
+
+    // Use the global API URL if injected (by E2E tests), otherwise infer from window
+    const baseUrl = window.__API_URL__ || window.location.origin.replace(/^http/, 'ws')
+    // Adjust path based on your backend WebSocket endpoint
+    const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/chat/${channel.id}`
+    
+    // Note: If your backend uses a different WS strategy (e.g. STOMP, Socket.io), adjust here.
+    // This assumes a simple raw WebSocket for demo purposes matching the E2E requirement.
+    try {
+        const socket = new WebSocket(wsUrl)
+        
+        socket.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data)
+            // Handle different event types if your backend sends them
+            // For now, assume any message received is a new chat message
+            setMessages(prev => {
+              const index = prev.findIndex(m => m.id === message.id)
+              if (index !== -1) {
+                return prev.map((m, i) => (i === index ? message : m))
+              }
+              return [...prev, message]
+            })
+          } catch (e) {
+            console.error('WS Error:', e)
+          }
+        }
+        
+        socketRef.current = socket
+    } catch (e) {
+        console.warn("WebSocket setup failed", e);
+    }
+  }
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleSend = async (e) => {
+    e.preventDefault()
+    if (!input.trim()) return
+
+    try {
+      const response = await messageAPI.create(channel.id, input)
+      setMessages(prev => {
+        if (prev.some(m => m.id === response.data.id)) return prev
+        return [...prev, response.data]
+      })
+      setInput('')
+      setShowEmojiPicker(false)
+    } catch (err) {
+      console.error('Failed to send message:', err)
+    }
+  }
+
+  const handleDelete = async (messageId) => {
+    if (!window.confirm('Delete this message?')) return
+    try {
+      await messageAPI.delete(channel.id, messageId)
+      setMessages(prev => prev.filter(m => m.id !== messageId))
+    } catch (err) {
+      console.error('Failed to delete message:', err)
+    }
+  }
+
+  const startEdit = (message) => {
+    setEditingMessageId(message.id)
+    setEditContent(message.content)
+    setShowEmojiPicker(false)
+  }
+
+  const cancelEdit = () => {
+    setEditingMessageId(null)
+    setEditContent('')
+  }
+
+  const saveEdit = async (messageId) => {
+    if (!editContent.trim()) return
+    try {
+      const response = await messageAPI.update(channel.id, messageId, editContent)
+      setMessages(prev => prev.map(m => m.id === messageId ? response.data : m))
+      setEditingMessageId(null)
+      setEditContent('')
+    } catch (err) {
+      console.error('Failed to update message:', err)
+      alert('Failed to update message')
+    }
+  }
+
+  const onEmojiClick = (emojiData) => {
+    setInput(prev => prev + emojiData.emoji)
+    setShowEmojiPicker(false)
+  }
+
+  // Helper to check if current user is author
+  const isAuthor = (message) => {
+    if (!currentUser) return false
+    return message.author?.id === currentUser.id || message.authorId === currentUser.id
+  }
+
+  // Helper to get display name
+  const getAuthorName = (message) => {
+    if (message.author) return message.author
+    if (currentUser && message.authorId === currentUser.id) return currentUser.username
+    return `User ${message.authorId || 'Unknown'}`
+  }
+
+  if (!channel?.id) {
+    return <div className="message-thread empty">Select a channel</div>
   }
 
   return (
     <div className="message-thread">
-      <div className="message-header">
-        <h2>
-          {!serverId || !channelId ? (
-            'Select a channel'
-          ) : isLoadingChannelInfo ? (
-            'Loading channel...'
-          ) : serverName === 'Error' ? (
-            'Error loading channel'
-          ) : (
-            `${serverName} > #${channelName}`
-          )}
-        </h2>
-      </div>
-      <div className="messages">
-        {messages.length === 0 ? (
-          <div className="no-messages">
-            <p>No messages yet. Start a conversation!</p>
-          </div>
-        ) : (
-          messages.map((msg, idx) => (
-            <div key={`${msg.id}-${idx}`} className="message">
-              <div className="message-header-info">
-                <strong>{msg.author || 'Unknown'}</strong>
-                <span className="message-time">
-                  {formatMessageTime(msg.createdAt)}
-                </span>
-              </div>
-              <p>{msg.content}</p>
+      <div className="messages-list">
+        {messages.map(message => (
+          <div key={message.id} className="message-item">
+            <div className="message-header">
+              <span className="author-name">{getAuthorName(message)}</span>
+              <span className="timestamp">{new Date(message.createdAt).toLocaleString()}</span>
+              {isAuthor(message) && (
+                <div className="message-actions">
+                  <button onClick={() => startEdit(message)} title="Edit">✏️</button>
+                  <button onClick={() => handleDelete(message.id)} title="Delete">🗑️</button>
+                </div>
+              )}
             </div>
-          ))
-        )}
+            
+            {editingMessageId === message.id ? (
+              <div className="edit-message-form">
+                <input 
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  autoFocus
+                />
+                <button onClick={() => saveEdit(message.id)}>Save</button>
+                <button onClick={cancelEdit} className="cancel">Cancel</button>
+              </div>
+            ) : (
+              <div className="message-content">{message.content}</div>
+            )}
+          </div>
+        ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="message-input">
-        {error && <div className="error-message">{error}</div>}
+
+      <form className="message-input-area" onSubmit={handleSend}>
         <div className="input-wrapper">
+          <button 
+            type="button" 
+            className="emoji-btn"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          >
+            😊
+          </button>
+          {showEmojiPicker && (
+            <div className="emoji-picker-container">
+              <EmojiPicker onEmojiClick={onEmojiClick} width={300} height={400} theme="dark" emojiStyle='native' lazyLoadEmojis	='true' />
+            </div>
+          )}
           <input
             type="text"
-            placeholder="Type a message..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            disabled={loading}
+            placeholder={`Message # ${channel.name}`}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
           />
-          <button onClick={handleSendMessage} disabled={loading || !inputValue.trim() || !isConnected}>
-            {loading ? 'Sending...' : isConnected ? 'Send' : 'Connecting...'}
-          </button>
         </div>
-      </div>
+        <button type="submit" disabled={!input.trim()}>Send</button>
+      </form>
     </div>
   )
 }

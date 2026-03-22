@@ -100,6 +100,35 @@ public class MessageResource {
         }
     }
 
+    @PATCH
+    @Path("/{messageId}")
+    @Operation(summary = "Update a message", description = "Update a message content (only message author can update)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "Message updated successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = MessageDTO.class))),
+        @APIResponse(responseCode = "400", description = "Invalid message data"),
+        @APIResponse(responseCode = "403", description = "Only message author can update it"),
+        @APIResponse(responseCode = "404", description = "Message not found")
+    })
+    public Response updateMessage(
+        @Parameter(description = "Channel ID", required = true)
+        @PathParam("channelId") Long channelId,
+        @Parameter(description = "Message ID", required = true)
+        @PathParam("messageId") Long messageId,
+        CreateMessageRequest request) {
+        try {
+            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            Message message = messageService.update(channelId, messageId, request.content, userId);
+            return Response.ok(mapToDTO(message)).build();
+        } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).entity(new ErrorResponse(e.getMessage())).build();
+        } catch (ForbiddenException e) {
+            return Response.status(Response.Status.FORBIDDEN).entity(new ErrorResponse(e.getMessage())).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(new ErrorResponse(e.getMessage())).build();
+        }
+    }
+
     @DELETE
     @Path("/{messageId}")
     @Operation(summary = "Delete a message", description = "Delete a message (only message author can delete)")
