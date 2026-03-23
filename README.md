@@ -116,7 +116,16 @@ For Kubernetes, update `k8s/configmap.yaml`.
 
 ## API Documentation
 
-Todo: swagger
+## OpenAPI/Swagger Documentation
+
+### Accessing the API Documentation
+
+Once the application is running, you can access the interactive API documentation at:
+
+- **Swagger UI**: `http://localhost:8080/q/swagger-ui`
+- **OpenAPI JSON**: `http://localhost:8080/q/openapi`
+- **OpenAPI YAML**: `http://localhost:8080/q/openapi?format=yaml`
+
 
 ## Deployment
 
@@ -150,18 +159,7 @@ Update `k8s/*.yaml` with image URLs and deploy.
 
 ## Troubleshooting
 
-**Backend won't start:**
-- Check PostgreSQL is running: `docker ps | grep postgres`
-- Verify migrations ran: Logs should show "Flyway successfully validated migration..."
-- Check environment variables in `application.yml`
-
-**Frontend build fails:**
-- Delete `node_modules` and `package-lock.json`, run `npm install` again
-- Ensure Node.js 18+ is installed
-
-**Messages not appearing:**
-- Verify polling is working: Open DevTools Network tab, should see requests to `/api/channels/{id}/messages` every 2 seconds
-- Check PostgreSQL for data: `docker exec resonant-postgres psql -U resonant -d resonant -c "SELECT * FROM messages;"`
+TODO: update with common issues and solutions.
 
 ## License
 

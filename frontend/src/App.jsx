@@ -9,6 +9,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [backendError, setBackendError] = useState(null)
 
   useEffect(() => {
     // Check if user is already logged in
@@ -24,12 +25,52 @@ function App() {
         localStorage.removeItem('currentUser')
       }
     }
-    // Show loading screen for 1.5 seconds for better UX
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1500)
     
-    return () => clearTimeout(timer)
+    let isMounted = true
+    let retryTimeout
+    let countdownInterval
+
+    const checkBackend = async (delay = 1000) => {
+      if (countdownInterval) clearInterval(countdownInterval)
+
+      try {
+        const baseUrl = window.__API_URL__ || 'http://localhost:8080'
+        // Check backend health. If it throws (network error), backend is unreachable.
+        // If it returns 503, the app is running but not ready (e.g. DB connection).
+        const res = await fetch(`${baseUrl}/q/health`)
+        if (res.status === 503) throw new Error('Service Unavailable')
+
+        if (isMounted) {
+          setIsLoading(false)
+          setBackendError(null)
+        }
+      } catch (err) {
+        if (isMounted) {
+          let remaining = Math.ceil(delay / 1000)
+          setBackendError(`Cannot connect to server. Retrying in ${remaining}s...`)
+
+          countdownInterval = setInterval(() => {
+            remaining -= 1
+            if (remaining > 0) {
+              if (isMounted) setBackendError(`Cannot connect to server. Retrying in ${remaining}s...`)
+            } else {
+              clearInterval(countdownInterval)
+            }
+          }, 1000)
+
+          const nextDelay = Math.min(delay * 1.5, 30000)
+          retryTimeout = setTimeout(() => checkBackend(nextDelay), delay)
+        }
+      }
+    }
+
+    checkBackend()
+    
+    return () => {
+      isMounted = false
+      if (retryTimeout) clearTimeout(retryTimeout)
+      if (countdownInterval) clearInterval(countdownInterval)
+    }
   }, [])
 
   const handleLogin = (token, user) => {
@@ -47,7 +88,16 @@ function App() {
   }
 
   if (isLoading) {
-    return <Loading />
+    return (
+      <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Loading />
+        {backendError && (
+          <div style={{ position: 'absolute', bottom: '20%', width: '100%', textAlign: 'center', color: '#ff6b6b', fontWeight: 'bold' }}>
+            {backendError}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
