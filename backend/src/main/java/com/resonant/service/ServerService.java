@@ -74,6 +74,50 @@ public class ServerService {
     }
 
     @Transactional
+    public Server updateServer(Long serverId, String name, String description, Long userId) throws Exception {
+        Optional<Server> serverOpt = serverRepository.findByIdOptional(serverId);
+        if (serverOpt.isEmpty()) {
+            throw new Exception("Server not found");
+        }
+        Server server = serverOpt.get();
+
+        if (!server.owner.id.equals(userId)) {
+            throw new Exception("Only owner can update server");
+        }
+
+        if (name != null && !name.isBlank()) {
+            server.name = name;
+        }
+        if (description != null) {
+            server.description = description;
+        }
+        return server;
+    }
+
+    @Transactional
+    public void removeMember(Long serverId, Long memberId, Long requesterId) throws Exception {
+        Server server = getServer(serverId);
+
+        if (!server.owner.id.equals(requesterId)) {
+            throw new Exception("Only owner can remove members");
+        }
+
+        if (server.owner.id.equals(memberId)) {
+            throw new Exception("Cannot remove the server owner");
+        }
+
+        Optional<User> memberOpt = userRepository.findByIdOptional(memberId);
+        if (memberOpt.isEmpty()) {
+            throw new Exception("Member not found");
+        }
+        User member = memberOpt.get();
+
+        if (!member.servers.removeIf(s -> s.id.equals(serverId))) {
+            throw new Exception("User is not a member of this server");
+        }
+    }
+
+    @Transactional
     public void joinServer(Long serverId, Long userId) throws Exception {
         Server server = getServer(serverId);
 

@@ -109,8 +109,8 @@ public class MessageService {
             .filter(m -> m.channel.id.equals(channelId))
             .orElseThrow(() -> new NotFoundException("Message not found"));
 
-        if (!message.author.id.equals(userId)) {
-            throw new ForbiddenException("Only message author can delete it");
+        if (!message.author.id.equals(userId) && !message.channel.server.owner.id.equals(userId)) {
+            throw new ForbiddenException("Only message author or server owner can delete it");
         }
 
         message.isDeleted = true;

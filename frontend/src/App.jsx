@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AuthForm from './components/AuthForm'
 import Dashboard from './components/Dashboard'
 import Loading from './components/Loading'
+import apiClient from './api/client'
 import './App.css'
 
 function App() {
@@ -34,17 +35,24 @@ function App() {
       if (countdownInterval) clearInterval(countdownInterval)
 
       try {
-        const baseUrl = window.__API_URL__ || 'http://localhost:8080'
-        // Check backend health. If it throws (network error), backend is unreachable.
-        // If it returns 503, the app is running but not ready (e.g. DB connection).
-        const res = await fetch(`${baseUrl}/q/health`)
-        if (res.status === 503) throw new Error('Service Unavailable')
+        if (window.__API_URL__) {
+          apiClient.defaults.baseURL = window.__API_URL__
+        }
+        await apiClient.get('/api/auth')
 
         if (isMounted) {
           setIsLoading(false)
           setBackendError(null)
         }
       } catch (err) {
+        if (err.response && err.response.status !== 503) {
+          if (isMounted) {
+            setIsLoading(false)
+            setBackendError(null)
+          }
+          return
+        }
+
         if (isMounted) {
           let remaining = Math.ceil(delay / 1000)
           setBackendError(`Cannot connect to server. Retrying in ${remaining}s...`)

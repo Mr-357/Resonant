@@ -12,6 +12,11 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newServerName, setNewServerName] = useState('')
   const [serverToLeave, setServerToLeave] = useState(null)
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false)
+  const [settingsServer, setSettingsServer] = useState(null)
+  const [settingsName, setSettingsName] = useState('')
+  const [settingsMembers, setSettingsMembers] = useState([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
 
   useEffect(() => {
     fetchServers()
@@ -100,15 +105,78 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   }
   const effectiveUser = getEffectiveUser()
 
+  // Helper to check ownership robustly
+  const isOwner = (server) => {
+    const ownerId = server?.owner?.id || server?.ownerId
+    const currentUserId = effectiveUser?.id || effectiveUser?.userId
+    return currentUserId && ownerId && String(ownerId) === String(currentUserId)
+  }
+
   // Determine the active server object
   const activeServer = servers.find(s => s.id === activeServerId)
 
-  const handleSelectServer = (id) => {
-    onServerSelect(id)
+  const handleSelectServer = (server) => {
+    onServerSelect(server)
+  }
+
+  const handleServerContextMenu = (e, server) => {
+    e.preventDefault()
+    if (isOwner(server)) {
+      setSettingsServer(server)
+      setSettingsName(server.name)
+      setSettingsMembers([])
+      setLoadingMembers(true)
+      setSettingsModalOpen(true)
+      serverAPI.getMembers(server.id)
+        .then(res => setSettingsMembers(res.data || []))
+        .catch(console.error)
+        .finally(() => setLoadingMembers(false))
+    }
+  }
+
+  const handleUpdateServer = async (e) => {
+    e.preventDefault()
+    if (!settingsName.trim() || !settingsServer) return
+    try {
+      const res = await serverAPI.update(settingsServer.id, settingsName)
+      setServers(prev => prev.map(s => s.id === settingsServer.id ? { ...s, name: res.data.name } : s))
+      // Update parent state if the updated server is currently active
+      if (activeServerId === settingsServer.id) {
+        onServerSelect({ ...settingsServer, name: res.data.name })
+      }
+      setSettingsModalOpen(false)
+    } catch (err) {
+      console.error("Update failed", err)
+      alert("Failed to update server")
+    }
+  }
+
+  const handleDeleteServer = async () => {
+    if (!settingsServer || !window.confirm(`Delete ${settingsServer.name}? This cannot be undone.`)) return
+    try {
+      await serverAPI.delete(settingsServer.id)
+      setServers(prev => prev.filter(s => s.id !== settingsServer.id))
+      if (activeServerId === settingsServer.id) onServerSelect(null)
+      setSettingsModalOpen(false)
+    } catch (err) {
+      console.error("Delete failed", err)
+      alert("Failed to delete server")
+    }
+  }
+
+  const handleRemoveMember = async (memberId) => {
+    if (!window.confirm("Remove this member?")) return
+    try {
+      await serverAPI.removeMember(settingsServer.id, memberId)
+      setSettingsMembers(prev => prev.filter(m => m.id !== memberId))
+    } catch (err) {
+      console.error("Remove member failed", err)
+      alert("Failed to remove member")
+    }
   }
 
   return (
-    <div className="server-list">
+    <div className="server-list" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
       <button className="server-button add-server" onClick={() => setShowCreateModal(true)} title="Add Server" disabled={loading}>
         ➕
       </button>
@@ -119,7 +187,8 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         <button
           key={server.id}
           className={`server-button ${activeServerId === server.id ? 'active' : ''}`}
-          onClick={() => handleSelectServer(server.id)}
+          onClick={() => handleSelectServer(server)}
+          onContextMenu={(e) => handleServerContextMenu(e, server)}
           title={server.name}
         >
           {server.name.charAt(0).toUpperCase()}
@@ -131,7 +200,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
           <div className="active-server-name" style={{ color: 'white', fontWeight: 'bold', fontSize: '12px', marginBottom: '8px', wordBreak: 'break-word' }}>
             {activeServer.name}
           </div>
-          {effectiveUser && activeServer.owner && String(activeServer.owner.id) !== String(effectiveUser.id) && (
+          {effectiveUser && !isOwner(activeServer) && (
             <button
               className="leave-server-btn"
               onClick={() => setServerToLeave(activeServer)}
@@ -200,6 +269,47 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
             <button type="submit" disabled={!newServerName.trim()} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#5865F2', color: 'white' }}>Create</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        title="Server Settings"
+      >
+        <form onSubmit={handleUpdateServer} style={{ marginBottom: '20px' }}>
+          <label htmlFor="server-settings-name" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b9bbbe' }}>SERVER NAME</label>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input
+              id="server-settings-name"
+              type="text"
+              value={settingsName}
+              onChange={(e) => setSettingsName(e.target.value)}
+              style={{ flex: 1, padding: '10px', borderRadius: '3px', border: 'none', backgroundColor: '#202225', color: 'white' }}
+            />
+            <button type="submit" style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#202225', color: 'white' }}>Update</button>
+          </div>
+        </form>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b9bbbe' }}>MEMBERS</label>
+          <div style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: '#2f3136', borderRadius: '4px', padding: '5px' }}>
+            {loadingMembers ? <div style={{ padding: '10px', color: '#72767d' }}>Loading members...</div> : 
+              settingsMembers.map(member => (
+                <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', borderBottom: '1px solid #202225' }}>
+                  <span>{member.username}</span>
+                  {String(member.id) !== String(effectiveUser?.id) && (
+                    <button onClick={() => handleRemoveMember(member.id)} style={{ backgroundColor: '#ed4245', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.8em' }}>Kick</button>
+                  )}
+                </div>
+              ))
+            }
+          </div>
+        </div>
+
+        <div style={{ borderTop: '1px solid #2f3136', paddingTop: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#ed4245' }}>DANGER ZONE</label>
+          <button onClick={handleDeleteServer} style={{ width: '100%', padding: '10px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#ed4245', color: 'white', fontWeight: 'bold' }}>Delete Server</button>
+        </div>
       </Modal>
 
       <Modal 

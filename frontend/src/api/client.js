@@ -60,6 +60,7 @@ export const serverAPI = {
     apiClient.post(`/api/servers/${serverId}/members`, { userId }),
   removeMember: (serverId, userId) =>
     apiClient.delete(`/api/servers/${serverId}/members/${userId}`),
+  getMembers: (serverId) => apiClient.get(`/api/servers/${serverId}/members`),
 }
 
 // Channel endpoints

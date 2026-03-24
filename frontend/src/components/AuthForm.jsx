@@ -34,9 +34,10 @@ export default function AuthForm({ onLogin }) {
         response = await authAPI.register(formData.username, formData.email, formData.password)
       }
       
-      const { userId, username, token } = response.data
+      const data = response.data
+      const id = data.userId || data.id
 
-      onLogin(token, { userId, username })
+      onLogin(data.token, { id, username: data.username })
     } catch (err) {
       setError(err.response?.data?.error || 'Authentication failed')
     } finally {

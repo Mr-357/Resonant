@@ -20,6 +20,9 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.ArrayList;
 
 @Path("/api/servers")
 @Produces(MediaType.APPLICATION_JSON)
@@ -56,6 +59,28 @@ public class ServerResource {
             Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
             Server server = serverService.createServer(request, userId);
             return Response.status(Response.Status.CREATED).entity(server).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
+    @PUT
+    @Path("/{serverId}")
+    @Operation(summary = "Update server", description = "Update server name and description (owner only)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "Server updated successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Server.class))),
+        @APIResponse(responseCode = "400", description = "Invalid request or permissions")
+    })
+    public Response updateServer(
+        @PathParam("serverId") Long serverId, 
+        CreateServerRequest request) {
+        try {
+            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            Server server = serverService.updateServer(serverId, request.name, request.description, userId);
+            return Response.ok(server).build();
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponse(e.getMessage()))
@@ -134,6 +159,27 @@ public class ServerResource {
     }
 
     @DELETE
+    @Path("/{serverId}/members/{userId}")
+    @Operation(summary = "Remove member", description = "Remove a user from the server (owner only)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "204", description = "Member removed successfully"),
+        @APIResponse(responseCode = "400", description = "Error removing member")
+    })
+    public Response removeMember(
+        @PathParam("serverId") Long serverId,
+        @PathParam("userId") Long userId) {
+        try {
+            Long requesterId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            serverService.removeMember(serverId, userId, requesterId);
+            return Response.noContent().build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
+    @DELETE
     @Path("/{serverId}")
     @Operation(summary = "Delete a server", description = "Delete a server (only owner can delete)")
     @APIResponses(value = {
@@ -155,10 +201,45 @@ public class ServerResource {
         }
     }
 
+    @GET
+    @Path("/{serverId}/members")
+    @Operation(summary = "Get server members", description = "Retrieve list of members for a server")
+    public Response getMembers(@PathParam("serverId") Long serverId) {
+        try {
+            Server server = serverService.getServer(serverId);
+            
+            // Combine owner and members for the list
+            Stream<User> memberStream = server.members.stream();
+            if (server.owner != null) {
+                memberStream = Stream.concat(Stream.of(server.owner), memberStream);
+            }
+            
+            List<MemberDTO> members = memberStream
+                .distinct()
+                .map(u -> new MemberDTO(u.id, u.username))
+                .collect(Collectors.toList());
+                
+            return Response.ok(members).build();
+        } catch (Exception e) {
+             return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
     static class ErrorResponse {
         public String error;
         public ErrorResponse(String error) {
             this.error = error;
+        }
+    }
+
+    public static class MemberDTO {
+        public Long id;
+        public String username;
+        public MemberDTO(Long id, String username) {
+            this.id = id;
+            this.username = username;
         }
     }
 }

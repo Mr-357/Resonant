@@ -322,4 +322,163 @@ test.describe('Resonant E2E Tests', () => {
     await editedMessageItem.locator('button[title="Delete"]').click({ force: true });
     await expect(page.getByText(initialText + ' - edited')).not.toBeVisible();
   });
+
+   test('Server owner can manage server settings (rename, kick, delete)', async ({ page, request }) => {
+    // 1. Setup: Owner, Member, Server
+    const { user: owner, server } = await seedChatEnvironment(request);
+    
+    // Create member and join
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    const member = {
+      username: `member_${timestamp}_${random}`,
+      email: `member_${timestamp}_${random}@test.com`,
+      password: 'Password123!'
+    };
+    const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: member });
+    const { token: memberToken } = await regResponse.json();
+    await request.post(`${API_URL}/api/servers/${server.id}/join`, {
+      headers: { Authorization: `Bearer ${memberToken}` }
+    });
+
+    // 2. Login as Owner
+    await page.goto(`${APP_URL}/auth`);
+    await page.getByRole('textbox', { name: 'Username' }).fill(owner.username);
+    await page.getByLabel('Password').fill(owner.password);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // 3. Select Server and verify selection
+    const serverButton = page.getByRole('button', { name: server.name.charAt(0), exact: true });
+    await expect(serverButton).toBeVisible();
+    await serverButton.click();
+    await expect(page.locator('.active-server-name')).toHaveText(server.name);
+
+    // 4. Open Server Settings (Right click)
+    await serverButton.click({ button: 'right' });
+
+    // 5. Rename Server
+    const newName = `${server.name} Updated`;
+    await page.locator('#server-settings-name').fill(newName);
+    await page.getByRole('button', { name: 'Update' }).click();
+    
+    // Verify name updated in the active server header
+    await expect(page.locator('.active-server-name')).toHaveText(newName);
+
+    // Ensure modal is closed before reopening
+    if (await page.getByText('Server Settings').isVisible()) {
+        await page.keyboard.press('Escape');
+    }
+
+    // 6. Kick Member
+    // Open settings again
+    await serverButton.click({ button: 'right' });
+    
+    // Wait for members to load to ensure there is someone to kick
+    await expect(page.getByText('Loading members...')).not.toBeVisible();
+
+    // Setup dialog handler for kick confirmation
+    page.once('dialog', dialog => dialog.accept());
+    
+    // Find the member row and kick button
+    const memberRow = page.locator('div', { hasText: member.username }).last(); 
+    await expect(memberRow).toBeVisible();
+    await memberRow.getByRole('button', { name: 'Kick' }).click();
+    
+    // Verify member gone from list
+    await expect(page.getByText(member.username)).not.toBeVisible();
+
+    // 7. Delete Server
+    // Setup dialog handler for delete confirmation
+    page.once('dialog', dialog => dialog.accept());
+    
+    await page.getByRole('button', { name: 'Delete Server' }).click();
+    
+    // Verify server gone
+    await expect(serverButton).not.toBeVisible();
+  });
+
+  test('Server owner can manage channels (rename, delete)', async ({ page, request }) => {
+    const { user, server, channel } = await seedChatEnvironment(request);
+
+    // Login
+    await page.goto(`${APP_URL}/auth`);
+    await page.getByRole('textbox', { name: 'Username' }).fill(user.username);
+    await page.getByLabel('Password').fill(user.password);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // Select Server
+    await page.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
+    
+    // Right click channel to open settings
+    // ChannelList renders: "# {channel.name}"
+    const channelItem = page.getByText(`# ${channel.name}`);
+    await channelItem.click({ button: 'right' });
+
+    // Rename
+    const newChannelName = `${channel.name}-new`;
+    await page.locator('#channel-settings-name').fill(newChannelName);
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+
+    // Verify name update in list
+    await expect(page.getByText(`# ${newChannelName}`)).toBeVisible();
+
+    // Delete
+    await page.getByText(`# ${newChannelName}`).click({ button: 'right' });
+    
+    page.once('dialog', dialog => dialog.accept());
+    await page.getByRole('button', { name: 'Delete Channel' }).click();
+
+    // Verify gone
+    await expect(page.getByText(`# ${newChannelName}`)).not.toBeVisible();
+  });
+
+  test('Server owner can delete other users messages', async ({ page, request }) => {
+    // Setup: Owner, Member, Server, Channel
+    const { user: owner, server, channel } = await seedChatEnvironment(request);
+    
+    // Create member
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    const member = {
+      username: `poster_${timestamp}_${random}`,
+      email: `poster_${timestamp}_${random}@test.com`,
+      password: 'Password123!'
+    };
+    const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: member });
+    const { token: memberToken } = await regResponse.json();
+    
+    // Member joins and posts
+    await request.post(`${API_URL}/api/servers/${server.id}/join`, {
+      headers: { Authorization: `Bearer ${memberToken}` }
+    });
+    const msgContent = "Member message to be deleted";
+    await request.post(`${API_URL}/api/channels/${channel.id}/messages`, {
+        headers: { Authorization: `Bearer ${memberToken}` },
+        data: { content: msgContent }
+    });
+
+    // Login as Owner
+    await page.goto(`${APP_URL}/auth`);
+    await page.getByRole('textbox', { name: 'Username' }).fill(owner.username);
+    await page.getByLabel('Password').fill(owner.password);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // Navigate to channel
+    await page.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
+    await page.getByText(`# ${channel.name}`).click();
+
+    // Find message
+    const messageItem = page.locator('.message-item', { hasText: msgContent });
+    await expect(messageItem).toBeVisible();
+    
+    // Hover to show actions
+    await messageItem.hover();
+    
+    // Click delete
+    page.once('dialog', dialog => dialog.accept());
+    await messageItem.locator('button[title="Delete"]').click();
+    
+    // Verify gone
+    await expect(messageItem).not.toBeVisible();
+  });
 });

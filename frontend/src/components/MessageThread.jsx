@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import EmojiPicker from 'emoji-picker-react'
-import { messageAPI } from '../api/client'
+import { messageAPI, serverAPI } from '../api/client'
 import './MessageThread.css' // Assuming you have or will create this CSS
 
 export default function MessageThread({ serverId, channel, currentUser }) {
@@ -9,6 +9,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   const [loading, setLoading] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState(null)
+  const [serverOwnerId, setServerOwnerId] = useState(null)
   const [editContent, setEditContent] = useState('')
   const messagesEndRef = useRef(null)
   const socketRef = useRef(null)
@@ -16,6 +17,9 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   useEffect(() => {
     if (serverId && channel?.id) {
       fetchMessages()
+      serverAPI.get(serverId)
+        .then(res => setServerOwnerId(res.data.owner?.id || res.data.ownerId))
+        .catch(err => console.error("Failed to load server info", err))
       setupWebSocket()
     }
     return () => {
@@ -146,6 +150,12 @@ export default function MessageThread({ serverId, channel, currentUser }) {
     return message.author?.id === currentUser.id || message.authorId === currentUser.id
   }
 
+  // Helper to check if current user can delete (Author or Server Owner)
+  const canDelete = (message) => {
+    if (!currentUser) return false
+    return isAuthor(message) || currentUser.id === serverOwnerId
+  }
+
   // Helper to get display name
   const getAuthorName = (message) => {
     if (message.author) return message.author
@@ -165,12 +175,10 @@ export default function MessageThread({ serverId, channel, currentUser }) {
             <div className="message-header">
               <span className="author-name">{getAuthorName(message)}</span>
               <span className="timestamp">{new Date(message.createdAt).toLocaleString()}</span>
-              {isAuthor(message) && (
-                <div className="message-actions">
-                  <button onClick={() => startEdit(message)} title="Edit">✏️</button>
-                  <button onClick={() => handleDelete(message.id)} title="Delete">🗑️</button>
-                </div>
-              )}
+              <div className="message-actions">
+                {isAuthor(message) && <button onClick={() => startEdit(message)} title="Edit">✏️</button>}
+                {canDelete(message) && <button onClick={() => handleDelete(message.id)} title="Delete">🗑️</button>}
+              </div>
             </div>
             
             {editingMessageId === message.id ? (

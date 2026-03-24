@@ -155,6 +155,53 @@ public class ChannelResource {
         }
     }
 
+    @PUT
+    @Path("/{channelId}")
+    @Transactional
+    @Operation(summary = "Update a channel", description = "Update a channel name and description (only server owner)")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "Channel updated successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ChannelDTO.class))),
+        @APIResponse(responseCode = "403", description = "Only server owner can update channels"),
+        @APIResponse(responseCode = "404", description = "Channel not found")
+    })
+    public Response updateChannel(
+        @Parameter(description = "Server ID", required = true)
+        @PathParam("serverId") Long serverId,
+        @Parameter(description = "Channel ID", required = true)
+        @PathParam("channelId") Long channelId,
+        CreateChannelRequest request) {
+        try {
+            Optional<Channel> channelOpt = channelRepository.findByIdOptional(channelId);
+            if (channelOpt.isEmpty() || !channelOpt.get().server.id.equals(serverId)) {
+                return Response.status(Response.Status.NOT_FOUND)
+                    .entity(new ErrorResponse("Channel not found"))
+                    .build();
+            }
+            Channel channel = channelOpt.get();
+
+            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            if (!channel.server.owner.id.equals(userId)) {
+                return Response.status(Response.Status.FORBIDDEN)
+                    .entity(new ErrorResponse("Only server owner can update channels"))
+                    .build();
+            }
+
+            if (request.name != null && !request.name.isBlank()) {
+                channel.name = request.name;
+            }
+            if (request.description != null) {
+                channel.description = request.description;
+            }
+
+            return Response.ok(mapToDTO(channel)).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
     @DELETE
     @Path("/{channelId}")
     @Transactional

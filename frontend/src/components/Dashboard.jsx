@@ -5,11 +5,11 @@ import MessageThread from './MessageThread'
 import './Dashboard.css'
 
 export default function Dashboard({ currentUser, onLogout }) {
-  const [selectedServerId, setSelectedServerId] = useState(null)
+  const [selectedServer, setSelectedServer] = useState(null)
   const [selectedChannel, setSelectedChannel] = useState(null)
 
-  const handleServerSelect = (serverId) => {
-    setSelectedServerId(serverId)
+  const handleServerSelect = (server) => {
+    setSelectedServer(server)
     setSelectedChannel(null)
   }
 
@@ -19,45 +19,59 @@ export default function Dashboard({ currentUser, onLogout }) {
   
   return (
     <div className="dashboard">
-      <button 
-        onClick={onLogout} 
-        className="logout-btn"
-        style={{
-          position: 'fixed',
-          top: '15px',
-          right: '20px',
-          zIndex: 1000,
-        }}
-      >
-        Logout
-      </button>
+      {/* Column 1: Server List */}
       <div className="sidebar">
         <ServerList 
           currentUser={currentUser} 
-          activeServerId={selectedServerId}
+          activeServerId={selectedServer?.id}
           onServerSelect={handleServerSelect}
         />
       </div>
-      <div className="main-content">
+      
+      {/* Column 2: Channels & User Panel */}
+      <div className="sidebar-secondary">
         <div className="channels-panel">
           <ChannelList 
-            serverId={selectedServerId}
+            serverId={selectedServer?.id}
             activeChannelId={selectedChannel?.id}
             onChannelSelect={handleChannelSelect}
+            currentUser={currentUser}
           />
         </div>
-        <div className="messages-panel">
-          <MessageThread 
-            serverId={selectedServerId} 
-            channel={selectedChannel} 
-            currentUser={currentUser} 
-          />
+        <div className="user-panel">
+          <div className="user-info">
+            <span>{currentUser?.username}</span>
+            <span style={{ marginLeft: 'auto', fontWeight: 'bold', color: '#5865F2' }}>Resonant</span>
+          </div>
         </div>
       </div>
-      <div className="user-panel">
-        <div className="user-info">
-          <span>{currentUser?.username}</span>
-          <span style={{ marginLeft: 'auto', fontWeight: 'bold', color: '#5865F2' }}>Resonant</span>
+      
+      {/* Column 3: Top Bar & Messages */}
+      <div className="main-content">
+        <div className="top-bar">
+          <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+             {selectedServer ? (
+                <>
+                  {selectedServer.name}
+                  {selectedChannel && (
+                    <>
+                      <span style={{ margin: '0 4px', color: '#72767d' }}>&gt;</span>
+                      <span style={{ color: '#72767d' }}>#</span>
+                      {selectedChannel.name}
+                    </>
+                  )}
+                </>
+             ) : 'Resonant'}
+          </div>
+          <button onClick={onLogout} style={{ background: '#ed4245', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}>Logout</button>
+        </div>
+
+        <div className="messages-panel">
+            <MessageThread 
+              serverId={selectedServer?.id} 
+              channel={selectedChannel} 
+              currentUser={currentUser} 
+            />
         </div>
       </div>
     </div>
