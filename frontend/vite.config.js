@@ -9,13 +9,17 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true
-      }
-    },
+      },
       '/chat': {
         target: 'ws://localhost:8080',
         ws: true,
-        changeOrigin: true,
+        changeOrigin: true
+      },
+      '/q': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
       }
+    }
   },
   build: {
     outDir: 'dist',

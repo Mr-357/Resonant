@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Configuration
-const API_URL = process.env.API_URL || 'http://localhost:8080'; // Backend (Docker: 8080)
+const API_URL = process.env.API_URL || 'http://localhost:8080'; // Backend (Quarkus: 8080)
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'; // Frontend (Docker: 3000, Dev: 5173)
 
 test.describe('Resonant E2E Tests', () => {
@@ -54,6 +54,13 @@ test.describe('Resonant E2E Tests', () => {
 
   // --- Tests ---
 
+  test.beforeEach(async ({ page }) => {
+    // Inject the API URL so the frontend can connect directly to the backend
+    await page.addInitScript((url) => {
+      window.__API_URL__ = url;
+    }, API_URL);
+  });
+
   test('User can register a new account', async ({ page }) => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
@@ -85,9 +92,6 @@ test.describe('Resonant E2E Tests', () => {
   test('User can login, find server/channel, see history, and send message', async ({ page, request }) => {
     // 1. Populate Database
     const { user, server, channel, messageData } = await seedChatEnvironment(request);
-
-    // Inject the API URL for WebSocket connection in Docker environment
-    await page.addInitScript(`window.__API_URL__ = '${API_URL}';`);
 
     // 2. Login via UI
     await page.goto(`${APP_URL}/auth`);
@@ -233,10 +237,10 @@ test.describe('Resonant E2E Tests', () => {
 
     // 4. Create separate browser contexts for User A and User B
     const contextA = await browser.newContext();
-    await contextA.addInitScript(`window.__API_URL__ = '${API_URL}';`);
+    await contextA.addInitScript((url) => { window.__API_URL__ = url; }, API_URL);
     const pageA = await contextA.newPage();
     const contextB = await browser.newContext();
-    await contextB.addInitScript(`window.__API_URL__ = '${API_URL}';`);
+    await contextB.addInitScript((url) => { window.__API_URL__ = url; }, API_URL);
     const pageB = await contextB.newPage();
 
     // 5. Login User A and go to channel

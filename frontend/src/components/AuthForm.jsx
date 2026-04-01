@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { authAPI } from '../api/client'
 import './AuthForm.css'
 
-export default function AuthForm({ onLogin }) {
+export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
   const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({
     username: '',
@@ -39,7 +39,11 @@ export default function AuthForm({ onLogin }) {
 
       onLogin(data.token, { id, username: data.username })
     } catch (err) {
-      setError(err.response?.data?.error || 'Authentication failed')
+      if (!err.response) {
+        setError('Unable to connect to server')
+      } else {
+        setError(err.response?.data?.error || 'Authentication failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -112,6 +116,16 @@ export default function AuthForm({ onLogin }) {
               {isLogin ? 'Register' : 'Login'}
             </button>
           </p>
+          <div style={{ marginTop: '15px', borderTop: '1px solid #2f3136', paddingTop: '10px' }}>
+            <button type="button" onClick={onChangeServer} style={{ background: 'none', border: 'none', color: '#72767d', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}>
+              Change Server
+            </button>
+            {serverUrl && serverUrl !== '/' && (
+              <div style={{ color: '#72767d', fontSize: '0.75rem', marginTop: '4px' }}>
+                Connecting to: {serverUrl}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

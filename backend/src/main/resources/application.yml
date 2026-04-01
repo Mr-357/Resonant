@@ -2,8 +2,7 @@ quarkus:
   application:
     name: resonant-backend
     version: 1.0.0
-  server:
-    port: 8080
+    
   datasource:
     db-kind: postgresql
     username: resonant
@@ -22,6 +21,7 @@ quarkus:
     locations: db/migration
 # Enable CORS for all origins, methods, and headers. Adjust as needed for production.
   http:
+    port: 8080
     cors:
       enabled: true
       origins: "/.*/"
