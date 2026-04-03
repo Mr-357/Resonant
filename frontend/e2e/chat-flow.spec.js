@@ -5,19 +5,28 @@ const API_URL = process.env.API_URL || 'http://localhost:8080'; // Backend (Quar
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'; // Frontend (Docker: 3000, Dev: 5173)
 
 test.describe('Resonant E2E Tests', () => {
-  
-  // --- Test Data Seeding Helper ---
-  // We use this to populate the DB before specific tests
-  // avoiding the need to manually click through creation steps every time.
-  async function seedChatEnvironment(request) {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    const user = {
-      username: `e2e_user_${timestamp}_${random}`,
-      email: `e2e_${timestamp}_${random}@example.com`,
+
+  // --- Helpers ---
+  function generateUserData(prefix = 'user') {
+    const id = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    return {
+      username: `${prefix}_${id}`,
+      email: `${prefix}_${id}@example.com`,
       password: 'Password123!'
     };
+  }
 
+  async function loginUser(page, username, password) {
+    await page.goto(`${APP_URL}/auth`);
+    await page.getByRole('textbox', { name: 'Username' }).fill(username);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Login' }).click();
+  }
+
+  // We use this to populate the DB before specific tests
+  async function seedChatEnvironment(request) {
+    const user = generateUserData('e2e_user');
+    const timestamp = Date.now();
     // 1. Register User via API
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: user });
     expect(regResponse.ok()).toBeTruthy();
@@ -62,13 +71,7 @@ test.describe('Resonant E2E Tests', () => {
   });
 
   test('User can register a new account', async ({ page }) => {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    const newUser = {
-      username: `new_user_${timestamp}_${random}`,
-      email: `new_${timestamp}_${random}@example.com`,
-      password: 'Password123!'
-    };
+    const newUser = generateUserData('new_user');
 
     await page.goto(`${APP_URL}/auth`); // Adjust path to your registration page
     
@@ -93,11 +96,7 @@ test.describe('Resonant E2E Tests', () => {
     // 1. Populate Database
     const { user, server, channel, messageData } = await seedChatEnvironment(request);
 
-    // 2. Login via UI
-    await page.goto(`${APP_URL}/auth`);
-    await page.getByRole('textbox', { name: 'Username' }).fill(user.username);
-    await page.getByLabel('Password').fill(user.password);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await loginUser(page, user.username, user.password);
 
     // 3. Check Server Existence
     // Verify the seeded server appears in the sidebar/list
@@ -134,11 +133,11 @@ test.describe('Resonant E2E Tests', () => {
     const { server: targetServer } = await seedChatEnvironment(request);
 
     // 2. Setup: Create User B (The joiner)
-    const timestamp = Date.now();
+
     const random = Math.floor(Math.random() * 10000);
     const userB = {
-      username: `joiner_${timestamp}_${random}`,
-      email: `joiner_${timestamp}_${random}@example.com`,
+      username: `joiner_${Date.now()}_${random}`,
+      email: `joiner_${Date.now()}_${random}@example.com`,
       password: 'Password123!'
     };
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
@@ -176,13 +175,7 @@ test.describe('Resonant E2E Tests', () => {
     const { server: targetServer } = await seedChatEnvironment(request);
 
     // 2. Setup: Create User B
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    const userB = {
-      username: `leaver_${timestamp}_${random}`,
-      email: `leaver_${timestamp}_${random}@example.com`,
-      password: 'Password123!'
-    };
+    const userB = generateUserData('leaver');
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
     const { token: userBToken } = await regResponse.json();
 
@@ -193,10 +186,7 @@ test.describe('Resonant E2E Tests', () => {
     expect(joinResponse.ok()).toBeTruthy();
 
     // 4. Login as User B
-    await page.goto(`${APP_URL}/auth`);
-    await page.getByRole('textbox', { name: 'Username' }).fill(userB.username);
-    await page.getByLabel('Password').fill(userB.password);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await loginUser(page, userB.username, userB.password);
 
     // 5. Select the server and verify name is shown
     await page.getByRole('button', { name: targetServer.name.charAt(0), exact: true }).click();
@@ -220,13 +210,7 @@ test.describe('Resonant E2E Tests', () => {
     const { user: userA, server, channel } = await seedChatEnvironment(request);
 
     // 2. Setup: Create User B
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    const userB = {
-      username: `realtime_${timestamp}_${random}`,
-      email: `realtime_${timestamp}_${random}@example.com`,
-      password: 'Password123!'
-    };
+    const userB = generateUserData('realtime');
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: userB });
     const { token: tokenB } = await regResponse.json();
 
@@ -244,19 +228,13 @@ test.describe('Resonant E2E Tests', () => {
     const pageB = await contextB.newPage();
 
     // 5. Login User A and go to channel
-    await pageA.goto(`${APP_URL}/auth`);
-    await pageA.getByRole('textbox', { name: 'Username' }).fill(userA.username);
-    await pageA.getByLabel('Password').fill(userA.password);
-    await pageA.getByRole('button', { name: 'Login' }).click();
+    await loginUser(pageA, userA.username, userA.password);
     // Nav
     await pageA.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
     await pageA.getByText(channel.name).click();
 
     // 6. Login User B and go to same channel
-    await pageB.goto(`${APP_URL}/auth`);
-    await pageB.getByRole('textbox', { name: 'Username' }).fill(userB.username);
-    await pageB.getByLabel('Password').fill(userB.password);
-    await pageB.getByRole('button', { name: 'Login' }).click();
+    await loginUser(pageB, userB.username, userB.password);
     // Nav
     await pageB.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
     await pageB.getByText(channel.name).click();
@@ -280,11 +258,7 @@ test.describe('Resonant E2E Tests', () => {
   test('User can manage messages (edit, delete, emoji)', async ({ page, request }) => {
     const { user, server, channel } = await seedChatEnvironment(request);
 
-    // 1. Login
-    await page.goto(`${APP_URL}/auth`);
-    await page.getByRole('textbox', { name: 'Username' }).fill(user.username);
-    await page.getByLabel('Password').fill(user.password);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await loginUser(page, user.username, user.password);
 
     // 2. Navigate to channel
     await page.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
@@ -332,13 +306,7 @@ test.describe('Resonant E2E Tests', () => {
     const { user: owner, server } = await seedChatEnvironment(request);
     
     // Create member and join
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    const member = {
-      username: `member_${timestamp}_${random}`,
-      email: `member_${timestamp}_${random}@test.com`,
-      password: 'Password123!'
-    };
+    const member = generateUserData('member');
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: member });
     const { token: memberToken } = await regResponse.json();
     await request.post(`${API_URL}/api/servers/${server.id}/join`, {
@@ -346,10 +314,7 @@ test.describe('Resonant E2E Tests', () => {
     });
 
     // 2. Login as Owner
-    await page.goto(`${APP_URL}/auth`);
-    await page.getByRole('textbox', { name: 'Username' }).fill(owner.username);
-    await page.getByLabel('Password').fill(owner.password);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await loginUser(page, owner.username, owner.password);
 
     // 3. Select Server and verify selection
     const serverButton = page.getByRole('button', { name: server.name.charAt(0), exact: true });
@@ -404,11 +369,7 @@ test.describe('Resonant E2E Tests', () => {
   test('Server owner can manage channels (rename, delete)', async ({ page, request }) => {
     const { user, server, channel } = await seedChatEnvironment(request);
 
-    // Login
-    await page.goto(`${APP_URL}/auth`);
-    await page.getByRole('textbox', { name: 'Username' }).fill(user.username);
-    await page.getByLabel('Password').fill(user.password);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await loginUser(page, user.username, user.password);
 
     // Select Server
     await page.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
@@ -441,13 +402,7 @@ test.describe('Resonant E2E Tests', () => {
     const { user: owner, server, channel } = await seedChatEnvironment(request);
     
     // Create member
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    const member = {
-      username: `poster_${timestamp}_${random}`,
-      email: `poster_${timestamp}_${random}@test.com`,
-      password: 'Password123!'
-    };
+    const member = generateUserData('poster');
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: member });
     const { token: memberToken } = await regResponse.json();
     
@@ -462,10 +417,7 @@ test.describe('Resonant E2E Tests', () => {
     });
 
     // Login as Owner
-    await page.goto(`${APP_URL}/auth`);
-    await page.getByRole('textbox', { name: 'Username' }).fill(owner.username);
-    await page.getByLabel('Password').fill(owner.password);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await loginUser(page, owner.username, owner.password);
 
     // Navigate to channel
     await page.getByRole('button', { name: server.name.charAt(0), exact: true }).click();
