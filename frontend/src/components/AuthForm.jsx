@@ -41,6 +41,8 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
     } catch (err) {
       if (!err.response) {
         setError('Unable to connect to server')
+      } else if (err.response.status >= 500) {
+        setError('Server error. Please try again later.')
       } else {
         setError(err.response?.data?.error || 'Authentication failed')
       }
