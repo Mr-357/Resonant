@@ -7,6 +7,8 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,7 +23,7 @@ class ServerResourceTest {
     private static final String AUTH_LOGIN = BASE_URL + "/auth/login";
 
     private String authToken;
-    private Long userId;
+    private UUID userId;
 
     @BeforeEach
     void setup() {
@@ -43,7 +45,7 @@ class ServerResourceTest {
 
         assertEquals(201, registerResponse.statusCode());
         authToken = registerResponse.jsonPath().getString("token");
-        userId = registerResponse.jsonPath().getLong("userId");
+        userId = UUID.fromString(registerResponse.jsonPath().getString("userId"));
     }
 
     @Test
@@ -115,7 +117,7 @@ class ServerResourceTest {
         .when()
             .post(SERVERS_ENDPOINT);
 
-        Long serverId = createResponse.jsonPath().getLong("id");
+        UUID serverId = UUID.fromString(createResponse.jsonPath().getString("id"));
 
         // Get the specific server
         given()
@@ -124,7 +126,7 @@ class ServerResourceTest {
             .get(SERVERS_ENDPOINT + "/" + serverId)
         .then()
             .statusCode(200)
-            .body("id", equalTo(serverId.intValue()))
+            .body("id", equalTo(serverId.toString()))
             .body("name", equalTo("Server to Get"));
     }
 
@@ -145,7 +147,7 @@ class ServerResourceTest {
         .when()
             .post(SERVERS_ENDPOINT);
 
-        Long serverId = createResponse.jsonPath().getLong("id");
+        UUID serverId = UUID.fromString(createResponse.jsonPath().getString("id"));
 
         // Delete the server
         given()

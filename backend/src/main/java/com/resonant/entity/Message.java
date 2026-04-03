@@ -4,6 +4,7 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "messages", indexes = {
@@ -13,8 +14,8 @@ import java.time.LocalDateTime;
 })
 public class Message extends PanacheEntityBase {
     
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long id;
+    @Id @GeneratedValue
+    public UUID id;
 
     @Column(nullable = false)
     public String content;

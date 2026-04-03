@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.UUID;
 
 @ApplicationScoped
 public class MessageService {
@@ -34,7 +35,7 @@ public class MessageService {
     @Inject
     MessageSocket messageSocket;
 
-    public List<Message> getMessages(Long channelId, Long sinceTimestamp, int limit) {
+    public List<Message> getMessages(UUID channelId, Long sinceTimestamp, int limit) {
         if (channelRepository.findByIdOptional(channelId).isEmpty()) {
             throw new NotFoundException("Channel not found");
         }
@@ -55,7 +56,7 @@ public class MessageService {
     }
 
     @Transactional
-    public Message create(Long channelId, String content, Long userId) {
+    public Message create(UUID channelId, String content, UUID userId) {
         validateContent(content);
 
         Channel channel = channelRepository.findByIdOptional(channelId)
@@ -70,7 +71,7 @@ public class MessageService {
     }
 
     @Transactional
-    public Message create(Long channelId, String content, String username) {
+    public Message create(UUID channelId, String content, String username) {
         validateContent(content);
 
         Channel channel = channelRepository.findByIdOptional(channelId)
@@ -87,7 +88,7 @@ public class MessageService {
     }
 
     @Transactional
-    public Message update(Long channelId, Long messageId, String content, Long userId) {
+    public Message update(UUID channelId, UUID messageId, String content, UUID userId) {
         validateContent(content);
 
         Message message = messageRepository.findByIdOptional(messageId)
@@ -104,7 +105,7 @@ public class MessageService {
     }
 
     @Transactional
-    public void delete(Long channelId, Long messageId, Long userId) {
+    public void delete(UUID channelId, UUID messageId, UUID userId) {
         Message message = messageRepository.findByIdOptional(messageId)
             .filter(m -> m.channel.id.equals(channelId))
             .orElseThrow(() -> new NotFoundException("Message not found"));

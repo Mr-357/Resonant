@@ -2,6 +2,7 @@ package com.resonant.socket;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.time.Instant;
 import java.util.logging.Logger;
@@ -16,9 +17,12 @@ import jakarta.websocket.server.ServerEndpoint;
 
 import io.smallrye.jwt.auth.principal.JWTParser;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resonant.entity.Message;
 
+import com.resonant.service.MessageService;
 @ServerEndpoint("/chat/{channelId}")
 @ApplicationScoped
 public class MessageSocket {
@@ -26,7 +30,7 @@ public class MessageSocket {
     private static final Logger LOG = Logger.getLogger(MessageSocket.class.getName());
 
     // Map<ChannelId, Set<Session>>
-    private final Map<Long, Set<Session>> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<Session>> sessions = new ConcurrentHashMap<>();
 
     @Inject
     JWTParser jwtParser;
@@ -36,36 +40,59 @@ public class MessageSocket {
 
     @Inject
     ManagedExecutor managedExecutor;
+    
+    @Inject
+    MessageService messageService;
 
     @OnOpen
-    public void onOpen(Session session, @PathParam("channelId") Long channelId) {
-        sessions.computeIfAbsent(channelId, k -> ConcurrentHashMap.newKeySet()).add(session);
-        LOG.info("Session opened: " + session.getId() + " for channel: " + channelId);
+    public void onOpen(Session session, @PathParam("channelId") String channelId) {
+        UUID id = UUID.fromString(channelId);
+        sessions.computeIfAbsent(id, k -> ConcurrentHashMap.newKeySet()).add(session);
+        LOG.info("Session opened: " + session.getId() + " for channel: " + id);
     }
 
     @OnClose
-    public void onClose(Session session, @PathParam("channelId") Long channelId) {
-        Set<Session> channelSessions = sessions.get(channelId);
+    public void onClose(Session session, @PathParam("channelId") String channelId) {
+        UUID id = UUID.fromString(channelId);
+        Set<Session> channelSessions = sessions.get(id);
         if (channelSessions != null) {
             channelSessions.remove(session);
         }
     }
 
     @OnError
-    public void onError(Session session, @PathParam("channelId") Long channelId, Throwable throwable) {
-        Set<Session> channelSessions = sessions.get(channelId);
+    public void onError(Session session, @PathParam("channelId") String channelId, Throwable throwable) {
+        UUID id = UUID.fromString(channelId);
+        Set<Session> channelSessions = sessions.get(id);
         if (channelSessions != null) {
             channelSessions.remove(session);
         }
-        LOG.severe("WebSocket error in channel " + channelId + ": " + throwable.getMessage());
+        LOG.severe("WebSocket error in channel " + id + ": " + throwable.getMessage());
     }
 
     @OnMessage
-    public void onMessage(String messageJson, Session session, @PathParam("channelId") Long channelId) {
+    public void onMessage(String messageJson, Session session, @PathParam("channelId") String channelId) {
         managedExecutor.submit(() -> {
             try {
-                LOG.info("Received message on WS (ignored, using HTTP for writes): " + messageJson);
-                broadcast(channelId, messageJson);
+                UUID channelUuid = UUID.fromString(channelId);
+                LOG.info("Received message on WS for channel " + channelUuid + ": " + messageJson);
+
+                // Parse the incoming JSON message
+                JsonNode rootNode = objectMapper.readTree(messageJson);
+                String token = rootNode.has("token") ? rootNode.get("token").asText() : null;
+                String content = rootNode.has("content") ? rootNode.get("content").asText() : null;
+
+                if (token == null || content == null || content.isBlank()) {
+                    session.getAsyncRemote().sendText("{\"error\": \"Invalid message format or missing token/content\"}");
+                    return;
+                }
+
+                // Authenticate and get user ID from token
+                JsonWebToken jwt = jwtParser.parse(token);
+                UUID userId = UUID.fromString(jwt.getSubject());
+
+                // Use MessageService to create the message, which will handle persistence and broadcasting
+                messageService.create(channelUuid, content, userId);
             } catch (Exception e) {
                 LOG.warning("Failed to process message: " + e.getMessage());
                 // Optionally send error back to sender
@@ -74,7 +101,7 @@ public class MessageSocket {
         });
     }
 
-    public void broadcast(Long channelId, Message message) {
+    public void broadcast(UUID channelId, Message message) {
         try {
             Map<String, Object> response = new HashMap<>();
             response.put("id", message.id);
@@ -92,7 +119,7 @@ public class MessageSocket {
         }
     }
 
-    private void broadcast(Long channelId, String message) {
+    private void broadcast(UUID channelId, String message) {
         Set<Session> channelSessions = sessions.get(channelId);
         if (channelSessions != null) {
             channelSessions.forEach(s -> {

@@ -7,6 +7,8 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,8 +22,8 @@ class MessageResourceTest {
     private static final String SERVERS_ENDPOINT = BASE_URL + "/servers";
 
     private String authToken;
-    private Long serverId;
-    private Long channelId;
+    private UUID serverId;
+    private UUID channelId;
 
     @BeforeEach
     void setup() {
@@ -60,7 +62,7 @@ class MessageResourceTest {
             .post(SERVERS_ENDPOINT);
 
         assertEquals(201, serverResponse.statusCode());
-        serverId = serverResponse.jsonPath().getLong("id");
+        serverId = UUID.fromString(serverResponse.jsonPath().getString("id"));
 
         // Create a channel
         String channelsEndpoint = SERVERS_ENDPOINT + "/" + serverId + "/channels";
@@ -79,7 +81,7 @@ class MessageResourceTest {
             .post(channelsEndpoint);
 
         assertEquals(201, channelResponse.statusCode());
-        channelId = channelResponse.jsonPath().getLong("id");
+        channelId = UUID.fromString(channelResponse.jsonPath().getString("id"));
     }
 
     @Test
@@ -185,7 +187,7 @@ class MessageResourceTest {
         .when()
             .post(messagesEndpoint);
 
-        Long messageId = messageResponse.jsonPath().getLong("id");
+        UUID messageId = UUID.fromString(messageResponse.jsonPath().getString("id"));
 
         // Delete the message
         given()

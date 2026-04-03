@@ -1,18 +1,18 @@
 package com.resonant.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "channels")
 public class Channel extends PanacheEntityBase {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long id;
+    @Id @GeneratedValue
+    public UUID id;
     @Column(nullable = false, length = 100)
     public String name;
     
@@ -44,7 +44,7 @@ public class Channel extends PanacheEntityBase {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public static List<Channel> findByServer(Long serverId) {
+    public static List<Channel> findByServer(UUID serverId) {
         return find("server.id", serverId).list();
     }
 }

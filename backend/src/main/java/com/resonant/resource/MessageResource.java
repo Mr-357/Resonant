@@ -21,6 +21,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Path("/api/channels/{channelId}/messages")
@@ -45,7 +46,7 @@ public class MessageResource {
     })
     public Response getMessages(
         @Parameter(description = "Channel ID", required = true)
-        @PathParam("channelId") Long channelId,
+        @PathParam("channelId") UUID channelId,
         @Parameter(description = "Unix timestamp in milliseconds - retrieve only messages after this time", required = false)
         @QueryParam("since") Long sinceTimestamp,
         @Parameter(description = "Maximum number of messages to return", required = false)
@@ -79,9 +80,9 @@ public class MessageResource {
     })
     public Response createMessage(
         @Parameter(description = "Channel ID", required = true)
-        @PathParam("channelId") Long channelId, CreateMessageRequest request) {
+        @PathParam("channelId") UUID channelId, CreateMessageRequest request) {
         try {
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             Message message = messageService.create(channelId, request.content, userId);
 
             return Response.status(Response.Status.CREATED)
@@ -112,12 +113,12 @@ public class MessageResource {
     })
     public Response updateMessage(
         @Parameter(description = "Channel ID", required = true)
-        @PathParam("channelId") Long channelId,
+        @PathParam("channelId") UUID channelId,
         @Parameter(description = "Message ID", required = true)
-        @PathParam("messageId") Long messageId,
+        @PathParam("messageId") UUID messageId,
         CreateMessageRequest request) {
         try {
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             Message message = messageService.update(channelId, messageId, request.content, userId);
             return Response.ok(mapToDTO(message)).build();
         } catch (NotFoundException e) {
@@ -139,11 +140,11 @@ public class MessageResource {
     })
     public Response deleteMessage(
         @Parameter(description = "Channel ID", required = true)
-        @PathParam("channelId") Long channelId,
+        @PathParam("channelId") UUID channelId,
         @Parameter(description = "Message ID", required = true)
-        @PathParam("messageId") Long messageId) {
+        @PathParam("messageId") UUID messageId) {
         try {
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             messageService.delete(channelId, messageId, userId);
 
             return Response.noContent().build();

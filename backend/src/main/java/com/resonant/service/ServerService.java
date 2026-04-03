@@ -11,6 +11,7 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class ServerService {
@@ -22,7 +23,7 @@ public class ServerService {
     UserRepository userRepository;
 
     @Transactional
-    public Server createServer(CreateServerRequest request, Long userId) throws Exception {
+    public Server createServer(CreateServerRequest request, UUID userId) throws Exception {
         if (request.name == null || request.name.isBlank()) {
             throw new Exception("Server name is required");
         }
@@ -42,7 +43,7 @@ public class ServerService {
         return server;
     }
 
-    public List<Server> getServersForUser(Long userId) {
+    public List<Server> getServersForUser(UUID userId) {
         return serverRepository.findServersForUser(userId);
     }
 
@@ -50,7 +51,7 @@ public class ServerService {
         return serverRepository.listAll();
     }
 
-    public Server getServer(Long serverId) throws Exception {
+    public Server getServer(UUID serverId) throws Exception {
         Optional<Server> server = serverRepository.findByIdOptional(serverId);
         if (server.isEmpty()) {
             throw new Exception("Server not found");
@@ -59,7 +60,7 @@ public class ServerService {
     }
 
     @Transactional
-    public void deleteServer(Long serverId, Long userId) throws Exception {
+    public void deleteServer(UUID serverId, UUID userId) throws Exception {
         Optional<Server> serverOpt = serverRepository.findByIdOptional(serverId);
         if (serverOpt.isEmpty()) {
             throw new Exception("Server not found");
@@ -74,7 +75,7 @@ public class ServerService {
     }
 
     @Transactional
-    public Server updateServer(Long serverId, String name, String description, Long userId) throws Exception {
+    public Server updateServer(UUID serverId, String name, String description, UUID userId) throws Exception {
         Optional<Server> serverOpt = serverRepository.findByIdOptional(serverId);
         if (serverOpt.isEmpty()) {
             throw new Exception("Server not found");
@@ -95,7 +96,7 @@ public class ServerService {
     }
 
     @Transactional
-    public void removeMember(Long serverId, Long memberId, Long requesterId) throws Exception {
+    public void removeMember(UUID serverId, UUID memberId, UUID requesterId) throws Exception {
         Server server = getServer(serverId);
 
         if (!server.owner.id.equals(requesterId)) {
@@ -118,7 +119,7 @@ public class ServerService {
     }
 
     @Transactional
-    public void joinServer(Long serverId, Long userId) throws Exception {
+    public void joinServer(UUID serverId, UUID userId) throws Exception {
         Server server = getServer(serverId);
 
         Optional<User> userOpt = userRepository.findByIdOptional(userId);
@@ -135,7 +136,7 @@ public class ServerService {
     }
 
     @Transactional
-    public void leaveServer(Long serverId, Long userId) throws Exception {
+    public void leaveServer(UUID serverId, UUID userId) throws Exception {
         Server server = getServer(serverId);
 
         Optional<User> userOpt = userRepository.findByIdOptional(userId);

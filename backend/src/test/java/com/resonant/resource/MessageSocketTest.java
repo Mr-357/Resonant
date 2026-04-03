@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.util.UUID;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
@@ -41,7 +42,7 @@ public class MessageSocketTest {
     URI chatUri;
 
     private String token;
-    private Long channelId;
+    private UUID channelId;
 
     @BeforeEach
     @Transactional

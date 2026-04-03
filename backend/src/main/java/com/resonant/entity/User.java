@@ -6,13 +6,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 public class User extends PanacheEntityBase {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long id;
+    @Id @GeneratedValue
+    public UUID id;
     
     @Column(nullable = false, unique = true, length = 50)
     public String username;

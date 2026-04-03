@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.ArrayList;
+import java.util.UUID;
 
 @Path("/api/servers")
 @Produces(MediaType.APPLICATION_JSON)
@@ -42,7 +43,7 @@ public class ServerResource {
     @APIResponse(responseCode = "200", description = "List of servers",
         content = @Content(mediaType = "application/json", schema = @Schema(implementation = Server.class)))
     public Response getServers() {
-        Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+        UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
         List<Server> servers = serverService.getServersForUser(userId);
         return Response.ok(servers).build();
     }
@@ -56,7 +57,7 @@ public class ServerResource {
     })
     public Response createServer(CreateServerRequest request) {
         try {
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             Server server = serverService.createServer(request, userId);
             return Response.status(Response.Status.CREATED).entity(server).build();
         } catch (Exception e) {
@@ -75,10 +76,10 @@ public class ServerResource {
         @APIResponse(responseCode = "400", description = "Invalid request or permissions")
     })
     public Response updateServer(
-        @PathParam("serverId") Long serverId, 
+        @PathParam("serverId") UUID serverId, 
         CreateServerRequest request) {
         try {
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             Server server = serverService.updateServer(serverId, request.name, request.description, userId);
             return Response.ok(server).build();
         } catch (Exception e) {
@@ -98,7 +99,7 @@ public class ServerResource {
     })
     public Response getServer(
         @Parameter(description = "Server ID", required = true)
-        @PathParam("serverId") Long serverId) {
+        @PathParam("serverId") UUID serverId) {
         try {
             Server server = serverService.getServer(serverId);
             return Response.ok(server).build();
@@ -126,9 +127,9 @@ public class ServerResource {
         @APIResponse(responseCode = "400", description = "Already a member or other error"),
         @APIResponse(responseCode = "404", description = "Server not found")
     })
-    public Response joinServer(@PathParam("serverId") Long serverId) {
+    public Response joinServer(@PathParam("serverId") UUID serverId) {
         try {
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             serverService.joinServer(serverId, userId);
             return Response.ok().build();
         } catch (Exception e) {
@@ -146,9 +147,9 @@ public class ServerResource {
         @APIResponse(responseCode = "400", description = "Cannot leave server (e.g., you are the owner)"),
         @APIResponse(responseCode = "404", description = "Server not found")
     })
-    public Response leaveServer(@PathParam("serverId") Long serverId) {
+    public Response leaveServer(@PathParam("serverId") UUID serverId) {
         try {
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             serverService.leaveServer(serverId, userId);
             return Response.ok().build();
         } catch (Exception e) {
@@ -166,10 +167,10 @@ public class ServerResource {
         @APIResponse(responseCode = "400", description = "Error removing member")
     })
     public Response removeMember(
-        @PathParam("serverId") Long serverId,
-        @PathParam("userId") Long userId) {
+        @PathParam("serverId") UUID serverId,
+        @PathParam("userId") UUID userId) {
         try {
-            Long requesterId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID requesterId = UUID.fromString(securityContext.getUserPrincipal().getName());
             serverService.removeMember(serverId, userId, requesterId);
             return Response.noContent().build();
         } catch (Exception e) {
@@ -189,9 +190,9 @@ public class ServerResource {
     })
     public Response deleteServer(
         @Parameter(description = "Server ID", required = true)
-        @PathParam("serverId") Long serverId) {
+        @PathParam("serverId") UUID serverId) {
         try {
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             serverService.deleteServer(serverId, userId);
             return Response.noContent().build();
         } catch (Exception e) {
@@ -204,7 +205,7 @@ public class ServerResource {
     @GET
     @Path("/{serverId}/members")
     @Operation(summary = "Get server members", description = "Retrieve list of members for a server")
-    public Response getMembers(@PathParam("serverId") Long serverId) {
+    public Response getMembers(@PathParam("serverId") UUID serverId) {
         try {
             Server server = serverService.getServer(serverId);
             
@@ -235,9 +236,9 @@ public class ServerResource {
     }
 
     public static class MemberDTO {
-        public Long id;
+        public UUID id;
         public String username;
-        public MemberDTO(Long id, String username) {
+        public MemberDTO(UUID id, String username) {
             this.id = id;
             this.username = username;
         }

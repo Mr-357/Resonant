@@ -24,6 +24,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Path("/api/servers/{serverId}/channels")
@@ -51,7 +52,7 @@ public class ChannelResource {
     })
     public Response getChannels(
         @Parameter(description = "Server ID", required = true)
-        @PathParam("serverId") Long serverId) {
+        @PathParam("serverId") UUID serverId) {
         try {
             Optional<Server> serverOpt = serverRepository.findByIdOptional(serverId);
             if (serverOpt.isEmpty()) {
@@ -83,9 +84,9 @@ public class ChannelResource {
     })
     public Response getChannel(
         @Parameter(description = "Server ID", required = true)
-        @PathParam("serverId") Long serverId,
+        @PathParam("serverId") UUID serverId,
         @Parameter(description = "Channel ID", required = true)
-        @PathParam("channelId") Long channelId) {
+        @PathParam("channelId") UUID channelId) {
         try {
             Optional<Channel> channelOpt = channelRepository.findByIdOptional(channelId);
             if (channelOpt.isEmpty() || !channelOpt.get().server.id.equals(serverId)) {
@@ -115,7 +116,7 @@ public class ChannelResource {
     })
     public Response createChannel(
         @Parameter(description = "Server ID", required = true)
-        @PathParam("serverId") Long serverId, CreateChannelRequest request) {
+        @PathParam("serverId") UUID serverId, CreateChannelRequest request) {
         try {
             if (request.name == null || request.name.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
@@ -132,7 +133,7 @@ public class ChannelResource {
             Server server = serverOpt.get();
 
             // Verify user is member of server
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             if (!server.owner.id.equals(userId) && !server.members.stream().anyMatch(m -> m.id.equals(userId))) {
                 return Response.status(Response.Status.FORBIDDEN)
                     .entity(new ErrorResponse("You are not a member of this server"))
@@ -167,9 +168,9 @@ public class ChannelResource {
     })
     public Response updateChannel(
         @Parameter(description = "Server ID", required = true)
-        @PathParam("serverId") Long serverId,
+        @PathParam("serverId") UUID serverId,
         @Parameter(description = "Channel ID", required = true)
-        @PathParam("channelId") Long channelId,
+        @PathParam("channelId") UUID channelId,
         CreateChannelRequest request) {
         try {
             Optional<Channel> channelOpt = channelRepository.findByIdOptional(channelId);
@@ -180,7 +181,7 @@ public class ChannelResource {
             }
             Channel channel = channelOpt.get();
 
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             if (!channel.server.owner.id.equals(userId)) {
                 return Response.status(Response.Status.FORBIDDEN)
                     .entity(new ErrorResponse("Only server owner can update channels"))
@@ -213,9 +214,9 @@ public class ChannelResource {
     })
     public Response deleteChannel(
         @Parameter(description = "Server ID", required = true)
-        @PathParam("serverId") Long serverId,
+        @PathParam("serverId") UUID serverId,
         @Parameter(description = "Channel ID", required = true)
-        @PathParam("channelId") Long channelId) {
+        @PathParam("channelId") UUID channelId) {
         try {
             Optional<Channel> channelOpt = channelRepository.findByIdOptional(channelId);
             if (channelOpt.isEmpty() || !channelOpt.get().server.id.equals(serverId)) {
@@ -225,7 +226,7 @@ public class ChannelResource {
             }
             Channel channel = channelOpt.get();
 
-            Long userId = Long.parseLong(securityContext.getUserPrincipal().getName());
+            UUID userId = UUID.fromString(securityContext.getUserPrincipal().getName());
             if (!channel.server.owner.id.equals(userId)) {
                 return Response.status(Response.Status.FORBIDDEN)
                     .entity(new ErrorResponse("Only server owner can delete channels"))
