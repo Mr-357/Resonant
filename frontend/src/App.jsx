@@ -101,7 +101,7 @@ function App() {
     if (customBackendUrl) {
       let url = customBackendUrl.replace(/\/$/, '')
       if (!/^https?:\/\//i.test(url)) {
-        url = 'http://' + url
+          url = 'https://' + url
       }
       setTargetApiUrl(url)
       setRetryCount(0)

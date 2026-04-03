@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 // Configuration
+// eslint-disable-next-line no-undef
 const API_URL = process.env.API_URL || 'http://localhost:8080'; // Backend (Quarkus: 8080)
+// eslint-disable-next-line no-undef
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'; // Frontend (Docker: 3000, Dev: 5173)
+let userRef, serverRef, channelRef, messageRef = null;
 
 test.describe('Resonant E2E Tests', () => {
 
@@ -30,7 +33,7 @@ test.describe('Resonant E2E Tests', () => {
     // 1. Register User via API
     const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: user });
     expect(regResponse.ok()).toBeTruthy();
-    const { token, userId } = await regResponse.json();
+    const { token } = await regResponse.json();
 
     // 2. Create Server via API
     const serverData = { name: `E2E Server ${timestamp}`, description: 'Test Server' };
@@ -70,6 +73,14 @@ test.describe('Resonant E2E Tests', () => {
     }, API_URL);
   });
 
+  test.beforeAll(async ({ request }) => {
+      const seedData  = await seedChatEnvironment(request);
+      userRef = seedData.user;
+      serverRef = seedData.server;
+      channelRef = seedData.channel;  
+      messageRef = seedData.messageData;
+  });
+
   test('User can register a new account', async ({ page }) => {
     const newUser = generateUserData('new_user');
 
@@ -92,9 +103,12 @@ test.describe('Resonant E2E Tests', () => {
     await expect(page.getByText('Select a server first')).toBeVisible(); 
   });
 
-  test('User can login, find server/channel, see history, and send message', async ({ page, request }) => {
+  test('User can login, find server/channel, see history, and send message', async ({ page }) => {
     // 1. Populate Database
-    const { user, server, channel, messageData } = await seedChatEnvironment(request);
+    const user = userRef;
+    const server = serverRef;
+    const channel = channelRef;
+    const messageData = messageRef;
 
     await loginUser(page, user.username, user.password);
 
@@ -130,7 +144,7 @@ test.describe('Resonant E2E Tests', () => {
 
   test('User can discover and join a server', async ({ page, request }) => {
     // 1. Setup: Create User A and Server A (The target)
-    const { server: targetServer } = await seedChatEnvironment(request);
+    const targetServer = serverRef;
 
     // 2. Setup: Create User B (The joiner)
 

@@ -4,7 +4,7 @@ import axios from 'axios'
 // In development: uses Vite proxy to http://localhost:8080
 // In production: uses same domain as frontend
 const apiClient = axios.create({
-  baseURL: import.meta.env.MODE === 'development' ? '/' : '/',
+  baseURL: import.meta.env.MODE === 'development' ? '/' : import.meta.env.VITE_BACKEND_URL,
   timeout: 10000,
 })
 
