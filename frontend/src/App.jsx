@@ -12,24 +12,11 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [backendError, setBackendError] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [retryTimer, setRetryTimer] = useState(0)
   const [customBackendUrl, setCustomBackendUrl] = useState('')
   const [targetApiUrl, setTargetApiUrl] = useState(window.__API_URL__)
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('token')
-    const user = localStorage.getItem('currentUser')
-    if (token && user) {
-      try {
-        setIsAuthenticated(true)
-        setCurrentUser(JSON.parse(user))
-      } catch (err) {
-        console.error('Failed to parse user from localStorage:', err)
-        localStorage.removeItem('token')
-        localStorage.removeItem('currentUser')
-      }
-    }
-    
     let isMounted = true
     let retryTimeout
     let countdownInterval
@@ -38,19 +25,40 @@ function App() {
       if (countdownInterval) clearInterval(countdownInterval)
 
       try {
-        if (targetApiUrl) {
+        if (targetApiUrl && apiClient.defaults.baseURL !== targetApiUrl) {
           apiClient.defaults.baseURL = targetApiUrl
         }
         
-        const response = await apiClient.get('/q/health/live')
+        // Add a timestamp to bypass proxy/browser caching of error states
+        const response = await apiClient.get(`/q/health/live?t=${Date.now()}`)
         
         // Check if the response is actually JSON and contains Quarkus health info
         if (typeof response.data !== 'object' || response.data.status !== 'UP') {
           throw new Error('Invalid health check response')
         }
 
+        // Backend is UP, now check/validate session (Updates check)
+        const token = localStorage.getItem('token')
+        const userStr = localStorage.getItem('currentUser')
+        
         if (isMounted) {
-          setIsLoading(false)
+          if (token && userStr) {
+            try {
+              const user = JSON.parse(userStr)
+              // Attempt to fetch a protected resource to verify the token is still valid
+              await apiClient.get('/api/servers') 
+              setIsAuthenticated(true)
+              setCurrentUser(user)
+            } catch (authErr) {
+              console.error('Session validation failed:', authErr)
+              localStorage.removeItem('token')
+              localStorage.removeItem('currentUser')
+              setIsAuthenticated(false)
+              setCurrentUser(null)
+            }
+          }
+          
+          setIsLoading(false) // Only stop loading once backend and session are verified
           setBackendError(null)
         }
       } catch (err) {
@@ -60,29 +68,37 @@ function App() {
         const isInvalidResponse = err.message === 'Invalid health check response'
         
         if (isInvalidResponse || (err.response && err.response.status !== 503)) {
-          if (isMounted) {
-            setIsLoading(false)
-            setBackendError(null)
-          }
-          return
+          // If the server explicitly errored (e.g., 404/500), the backend is "reachable" 
+          // but potentially broken. We stop loading to show the auth/error state.
+           if (isMounted) {
+             setIsLoading(true)
+             setBackendError("Server is unreachable or returned an error. Please check the server status or try a different URL.")
+           }
+
         }
 
         if (isMounted) {
           setRetryCount(prev => prev + 1)
-          let remaining = Math.ceil(delay / 1000)
-          setBackendError(`Cannot connect to server. Retrying in ${remaining}s...`)
+          let remainingDelay = Math.ceil(delay / 1000)
+          
+          if (backendError == null) {
+            setBackendError(`Cannot connect to server.`)
+          }
 
           countdownInterval = setInterval(() => {
-            remaining -= 1
-            if (remaining > 0) {
-              if (isMounted) setBackendError(`Cannot connect to server. Retrying in ${remaining}s...`)
+            remainingDelay -= 1
+            setRetryTimer(remainingDelay)
+            if (remainingDelay > 0) {
+              if (isMounted && backendError == null) setBackendError(`Cannot connect to server.`)
             } else {
               clearInterval(countdownInterval)
             }
           }, 1000)
 
           const nextDelay = Math.min(delay * 1.5, 30000)
-          retryTimeout = setTimeout(() => checkBackend(nextDelay), delay)
+          retryTimeout = setTimeout(() => {
+            if (isMounted) checkBackend(nextDelay)
+          }, delay)
         }
       }
     }
@@ -105,6 +121,7 @@ function App() {
       }
       setTargetApiUrl(url)
       setRetryCount(0)
+      setRetryTimer(0)
       setBackendError('Connecting to ' + url + '...')
       setIsLoading(true)
     }
@@ -128,6 +145,7 @@ function App() {
     setIsLoading(true)
     setBackendError('Configure Server Connection')
     setRetryCount(0)
+    setRetryTimer(0)
   }
 
   if (isLoading) {
@@ -137,6 +155,7 @@ function App() {
         {backendError && (
           <div style={{ position: 'absolute', bottom: '20%', width: '100%', textAlign: 'center', color: '#ff6b6b', fontWeight: 'bold' }}>
             {backendError}
+            <br></br>Retrying connection in .. {retryTimer} seconds
             {(retryCount >= 1 || backendError === 'Configure Server Connection') && (
               <form onSubmit={handleCustomUrlSubmit} style={{ marginTop: '15px' }}>
                 <p style={{ color: '#b9bbbe', fontSize: '0.9rem', marginBottom: '5px' }}>Is the server hosted elsewhere?</p>

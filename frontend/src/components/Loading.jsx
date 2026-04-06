@@ -9,7 +9,7 @@ export default function Loading() {
           <div className="spinner"></div>
         </div>
         <h1 className="loading-title">Resonant</h1>
-        <p className="loading-text">Checking your session...</p>
+        <p className="loading-text">Loading...</p>
       </div>
     </div>
   )
