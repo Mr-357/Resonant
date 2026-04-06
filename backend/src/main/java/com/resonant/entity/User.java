@@ -3,6 +3,7 @@ package com.resonant.entity;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.resonant.util.EncryptedStringConverter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,15 +16,23 @@ public class User extends PanacheEntityBase {
     @Id @GeneratedValue
     public UUID id;
     
-    @Column(nullable = false, unique = true, length = 50)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "username")
     public String username;
+
+    @Column(name = "username_blind_index")
+    public String usernameBlindIndex;
+
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "email")
+    public String email;
+
+    @Column(name = "email_blind_index")
+    public String emailBlindIndex;
     
     @Column(nullable = false, name = "password_hash", length = 255)
     @JsonIgnore
     public String passwordHash;
-    
-    @Column(nullable = false, unique = true, length = 255)
-    public String email;
     
     @Column(name = "created_at", nullable = false, updatable = false)
     public LocalDateTime createdAt;

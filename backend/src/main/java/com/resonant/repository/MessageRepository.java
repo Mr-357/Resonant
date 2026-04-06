@@ -13,12 +13,12 @@ import java.util.UUID;
 public class MessageRepository implements PanacheRepositoryBase<Message, UUID> {
 
     public List<Message> findByChannelNotDeleted(UUID channelId) {
-        return find("channel.id = ?1 and isDeleted = false order by createdAt desc", channelId)
+        return find("channel.id = ?1 and isDeleted = false order by createdAt asc", channelId)
                 .list();
     }
 
     public List<Message> findByChannelSinceNotDeleted(UUID channelId, LocalDateTime since) {
-        return find("channel.id = ?1 and isDeleted = false and createdAt > ?2 order by createdAt desc", channelId, since)
+        return find("channel.id = ?1 and isDeleted = false and createdAt > ?2 order by createdAt asc", channelId, since)
                 .list();
     }
 }

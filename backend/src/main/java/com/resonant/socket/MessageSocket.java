@@ -32,23 +32,23 @@ public class MessageSocket {
     // Map<ChannelId, Set<Session>>
     private final Map<UUID, Set<Session>> sessions = new ConcurrentHashMap<>();
 
-    @Inject
     JWTParser jwtParser;
-
-    @Inject
     ObjectMapper objectMapper;
-
-    @Inject
     ManagedExecutor managedExecutor;
-    
-    @Inject
     MessageService messageService;
+    @Inject
+    MessageSocket(JWTParser jwtParser, ObjectMapper objectMapper, ManagedExecutor managedExecutor, MessageService messageService) {
+        this.jwtParser = jwtParser;
+        this.objectMapper = objectMapper;
+        this.managedExecutor = managedExecutor;
+        this.messageService = messageService;
+    }
 
     @OnOpen
     public void onOpen(Session session, @PathParam("channelId") String channelId) {
         UUID id = UUID.fromString(channelId);
         sessions.computeIfAbsent(id, k -> ConcurrentHashMap.newKeySet()).add(session);
-        LOG.info("Session opened: " + session.getId() + " for channel: " + id);
+        LOG.finest("Session opened: " + session.getId() + " for channel: " + id);
     }
 
     @OnClose

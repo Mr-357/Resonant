@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.resonant.util.EncryptedStringConverter;
+
 @Entity
 @Table(name = "messages", indexes = {
     @Index(name = "idx_channel_created", columnList = "channel_id, created_at DESC"),
@@ -18,6 +20,7 @@ public class Message extends PanacheEntityBase {
     public UUID id;
 
     @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     public String content;
     
     @ManyToOne(optional = false)

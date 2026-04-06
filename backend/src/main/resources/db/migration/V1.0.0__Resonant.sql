@@ -1,4 +1,4 @@
--- Initial schema for Resonant Discord Clone
+-- Initial schema for Resonant application
 
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

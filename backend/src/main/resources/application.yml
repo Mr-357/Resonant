@@ -64,3 +64,6 @@ app:
     expiry-seconds: 3600
     issuer: resonant-app
     audience: resonant-users
+  encryption:
+    key: "your-256-bit-encryption-key-should-be-here" # Replace with your actual key
+    blind-index-key: "your-256-bit-blind-index-key-should-be-here" # Replace with your actual key

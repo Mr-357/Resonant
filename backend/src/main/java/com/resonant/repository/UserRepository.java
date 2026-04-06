@@ -10,11 +10,11 @@ import java.util.UUID;
 @ApplicationScoped
 public class UserRepository implements PanacheRepositoryBase<User, UUID> {
 
-    public Optional<User> findByUsername(String username) {
-        return find("username", username).firstResultOptional();
+   public Optional<User> findByUsernameIndex(String blindIndex) {
+        return find("usernameBlindIndex", blindIndex).firstResultOptional();
     }
 
-    public Optional<User> findByEmail(String email) {
-        return find("email", email).firstResultOptional();
+    public Optional<User> findByEmailIndex(String blindIndex) {
+        return find("emailBlindIndex", blindIndex).firstResultOptional();
     }
 }
