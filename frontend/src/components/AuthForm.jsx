@@ -22,7 +22,12 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    if (loading) return
+
     setLoading(true)
     setError('')
 
@@ -37,14 +42,21 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
       const data = response.data
       const id = data.userId || data.id
 
-      onLogin(data.token, { id, username: data.username })
+      if (onLogin) {
+        onLogin(data.token, { id, username: data.username })
+      }
     } catch (err) {
-      if (!err.response) {
+      const status = err.response?.status || err.status
+      const responseData = err.response?.data || err.data
+
+      if (!status) {
         setError('Unable to connect to server')
-      } else if (err.response.status >= 500) {
+      } else if (status === 401) {
+        setError('Invalid username or password')
+      } else if (status >= 500) {
         setError('Server error. Please try again later.')
       } else {
-        setError(err.response?.data?.error || 'Authentication failed')
+        setError(responseData?.error || 'Authentication failed')
       }
     } finally {
       setLoading(false)
