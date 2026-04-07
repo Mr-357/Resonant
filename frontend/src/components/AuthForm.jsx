@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import PropTypes from 'prop-types'
 import { authAPI } from '../api/client'
 import './AuthForm.css'
 
@@ -144,4 +145,10 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
       </div>
     </div>
   )
+}
+
+AuthForm.propTypes = {
+  onLogin: PropTypes.func.isRequired,
+  onChangeServer: PropTypes.func.isRequired,
+  serverUrl: PropTypes.string
 }

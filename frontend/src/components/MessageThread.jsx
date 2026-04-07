@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import EmojiPicker from 'emoji-picker-react'
+import PropTypes from 'prop-types'
 import { messageAPI, serverAPI } from '../api/client'
+import Modal from './Modal'
 import './MessageThread.css' // Assuming you have or will create this CSS
 
 export default function MessageThread({ serverId, channel, currentUser }) {
@@ -12,6 +14,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   const [serverOwnerId, setServerOwnerId] = useState(null)
   const [editContent, setEditContent] = useState('')
   const messagesEndRef = useRef(null)
+  const [messageToDelete, setMessageToDelete] = useState(null)
   const socketRef = useRef(null)
 
   useEffect(() => {
@@ -105,13 +108,15 @@ export default function MessageThread({ serverId, channel, currentUser }) {
     }
   }
 
-  const handleDelete = async (messageId) => {
-    if (!window.confirm('Delete this message?')) return
+  const confirmDelete = async () => {
+    if (!messageToDelete) return
     try {
-      await messageAPI.delete(channel.id, messageId)
-      setMessages(prev => prev.filter(m => m.id !== messageId))
+      await messageAPI.delete(channel.id, messageToDelete.id)
+      setMessages(prev => prev.filter(m => m.id !== messageToDelete.id))
     } catch (err) {
       console.error('Failed to delete message:', err)
+    } finally {
+      setMessageToDelete(null)
     }
   }
 
@@ -177,7 +182,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
               <span className="timestamp">{new Date(message.createdAt).toLocaleString()}</span>
               <div className="message-actions">
                 {isAuthor(message) && <button onClick={() => startEdit(message)} title="Edit">✏️</button>}
-                {canDelete(message) && <button onClick={() => handleDelete(message.id)} title="Delete">🗑️</button>}
+                {canDelete(message) && <button onClick={() => setMessageToDelete(message)} title="Delete">🗑️</button>}
               </div>
             </div>
             
@@ -222,6 +227,27 @@ export default function MessageThread({ serverId, channel, currentUser }) {
         </div>
         <button type="submit" disabled={!input.trim()}>Send</button>
       </form>
+
+      <Modal 
+        isOpen={!!messageToDelete} 
+        onClose={() => setMessageToDelete(null)} 
+        title="Delete Message"
+      >
+        <p>Are you sure you want to delete this message?</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button onClick={() => setMessageToDelete(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={confirmDelete} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Delete</button>
+        </div>
+      </Modal>
     </div>
   )
+}
+
+MessageThread.propTypes = {
+  serverId: PropTypes.string,
+  channel: PropTypes.shape({
+    id: PropTypes.string,
+    name: PropTypes.string
+  }),
+  currentUser: PropTypes.object
 }

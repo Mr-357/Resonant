@@ -312,6 +312,7 @@ test.describe('Resonant E2E Tests', () => {
     const editedMessageItem = page.locator('.message-item', { hasText: initialText + ' - edited' });
     await editedMessageItem.hover();
     await editedMessageItem.locator('button[title="Delete"]').click({ force: true });
+    await page.getByRole('button', { name: 'Delete' }).click();
     await expect(page.getByText(initialText + ' - edited')).not.toBeVisible();
   });
 
@@ -447,7 +448,7 @@ test.describe('Resonant E2E Tests', () => {
     // Click delete
     page.once('dialog', dialog => dialog.accept());
     await messageItem.locator('button[title="Delete"]').click();
-    
+    await page.getByRole('button', { name: 'Delete' }).click();
     // Verify gone
     await expect(messageItem).not.toBeVisible();
   });

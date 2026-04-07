@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import PropTypes from 'prop-types'
 import ServerList from './ServerList'
 import ChannelList from './ChannelList'
 import MessageThread from './MessageThread'
@@ -76,4 +77,9 @@ export default function Dashboard({ currentUser, onLogout }) {
       </div>
     </div>
   )
+}
+
+Dashboard.propTypes = {
+  currentUser: PropTypes.object,
+  onLogout: PropTypes.func.isRequired
 }

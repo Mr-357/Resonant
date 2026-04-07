@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
 import { channelAPI, serverAPI } from '../api/client'
 import './ChannelList.css'
 import Modal from './Modal'
@@ -175,4 +176,11 @@ export default function ChannelList({ serverId, activeChannelId, onChannelSelect
       </Modal>
     </div>
   )
+}
+
+ChannelList.propTypes = {
+  serverId: PropTypes.string,
+  activeChannelId: PropTypes.string,
+  onChannelSelect: PropTypes.func.isRequired,
+  currentUser: PropTypes.object
 }

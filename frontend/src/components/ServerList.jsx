@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
 import { serverAPI } from '../api/client'
 import './ServerList.css'
 import Modal from './Modal'
@@ -325,4 +326,10 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       </Modal>
     </div>
   )
+}
+
+ServerList.propTypes = {
+  currentUser: PropTypes.object,
+  activeServerId: PropTypes.string,
+  onServerSelect: PropTypes.func.isRequired
 }
