@@ -1,5 +1,18 @@
 # To enable the SQLite profile, run the application with -Dquarkus.profile=sqlite 
 # or set the QUARKUS_PROFILE=sqlite environment variable.
+
+"%sqlite":
+  quarkus:
+    datasource:
+      db-kind: sqlite
+      jdbc:
+        url: jdbc:sqlite:./resonant.sqlite
+        min-size: 1
+    hibernate-orm:
+      mapping:
+        uuid:
+          preferred-jdbc-type: VARCHAR
+
 quarkus:
   application:
     name: resonant-backend
@@ -12,23 +25,10 @@ quarkus:
     password: resonant
     jdbc:
       url: jdbc:postgresql://localhost:5432/resonant
-    connection-maximization-size: 20
   hibernate-orm:
     database:
       generation: none
     dialect: org.hibernate.dialect.PostgreSQLDialect
-
-%sqlite:
-  quarkus:
-    datasource:
-      db-kind: sqlite
-      jdbc:
-        url: jdbc:sqlite:./resonant.sqlite
-        min-size: 1
-    hibernate-orm:
-      mapping:
-        uuid:
-          preferred-jdbc-type: VARCHAR
 
   redis:
     hosts: redis://localhost:6379
