@@ -219,7 +219,14 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
           backgroundColor: 'var(--bg-overlay)', display: 'flex', justifyContent: 'center', 
           alignItems: 'center', zIndex: 1000
-        }}>
+        }}
+        role="button"
+        tabIndex="0"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') setShowDiscovery(false);
+        }}
+        aria-label="Close discovery"
+        >
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{
             backgroundColor: 'var(--bg-primary)', padding: '20px', borderRadius: '5px', 
             width: '400px', maxHeight: '80vh', overflowY: 'auto', color: 'white', border: '1px solid var(--border-tertiary)'
@@ -257,7 +264,9 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         title="Create a Server"
       >
         <form onSubmit={handleCreateServerSubmit}>
+          <label htmlFor="new-server-name" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--text-muted)' }}>SERVER NAME</label>
           <input 
+            id="new-server-name"
             type="text" 
             placeholder="Server name" 
             value={newServerName}
@@ -292,7 +301,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         </form>
 
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--text-muted)' }}>MEMBERS</label>
+          <span style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--text-muted)', fontWeight: 'bold' }}>MEMBERS</span>
           <div style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px', padding: '5px' }}>
             {loadingMembers ? <div style={{ padding: '10px', color: 'var(--text-subtle)' }}>Loading members...</div> : 
               settingsMembers.map(member => (
@@ -308,7 +317,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         </div>
 
         <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--status-danger)' }}>DANGER ZONE</label>
+          <span style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--status-danger)', fontWeight: 'bold' }}>DANGER ZONE</span>
           <button onClick={handleDeleteServer} style={{ width: '100%', padding: '10px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white', fontWeight: 'bold' }}>Delete Server</button>
         </div>
       </Modal>
