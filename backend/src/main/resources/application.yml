@@ -1,8 +1,11 @@
+# To enable the SQLite profile, run the application with -Dquarkus.profile=sqlite 
+# or set the QUARKUS_PROFILE=sqlite environment variable.
 quarkus:
   application:
     name: resonant-backend
     version: 1.0.0
-    
+
+
   datasource:
     db-kind: postgresql
     username: resonant
@@ -14,11 +17,24 @@ quarkus:
     database:
       generation: none
     dialect: org.hibernate.dialect.PostgreSQLDialect
+
+%sqlite:
+  quarkus:
+    datasource:
+      db-kind: sqlite
+      jdbc:
+        url: jdbc:sqlite:./resonant.sqlite
+        min-size: 1
+    hibernate-orm:
+      mapping:
+        uuid:
+          preferred-jdbc-type: VARCHAR
+
   redis:
     hosts: redis://localhost:6379
   flyway:
     migrate-at-start: true
-    locations: db/migration
+    locations: db/migration/${quarkus.datasource.db-kind}
 # Enable CORS for all origins, methods, and headers. Adjust as needed for production.
   http:
     port: 8080

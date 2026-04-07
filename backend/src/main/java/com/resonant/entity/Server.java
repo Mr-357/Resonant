@@ -2,6 +2,8 @@ package com.resonant.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
@@ -12,7 +14,8 @@ import java.util.UUID;
 @Table(name = "servers")
 public class Server extends PanacheEntityBase {
 
-    @Id @GeneratedValue
+    @Id 
+    @GeneratedValue 
     public UUID id;
     
     @Column(nullable = false, length = 100)

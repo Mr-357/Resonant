@@ -16,7 +16,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.32.3</quarkus.platform.version>
+    <quarkus.platform.version>3.34.2</quarkus.platform.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.0.0-M9</surefire-plugin.version>
   </properties>
@@ -47,6 +47,11 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-hibernate-orm-panache</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>io.quarkiverse.jdbc</groupId>
+        <artifactId>quarkus-jdbc-sqlite4j</artifactId>
+        <version>0.0.8</version>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
