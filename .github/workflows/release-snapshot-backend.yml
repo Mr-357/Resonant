@@ -1,0 +1,39 @@
+name: Snapshot Release
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Build and Release Latest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Remove application configuration from build
+        run: rm -f backend/src/main/resources/application.yml backend/src/main/resources/application.yaml
+
+      - name: Build Uber-JAR
+        run: mvn -B package -DskipTests -Dquarkus.package.type=uber-jar --file backend/pom.xml
+
+      - name: Create Latest Snapshot Release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Latest Snapshot Build"
+          files: backend/target/*-runner.jar
