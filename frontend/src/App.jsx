@@ -22,6 +22,63 @@ function App() {
     let retryTimeout
     let countdownInterval
 
+    const validateSession = async () => {
+      const token = localStorage.getItem('token')
+      const userStr = localStorage.getItem('currentUser')
+      
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          // Attempt to fetch a protected resource to verify the token is still valid
+          await apiClient.get('/api/servers') 
+          if (isMounted) {
+            setIsAuthenticated(true)
+            setCurrentUser(user)
+          }
+        } catch (authErr) {
+          console.error('Session validation failed:', authErr)
+          localStorage.removeItem('token')
+          localStorage.removeItem('currentUser')
+          if (isMounted) {
+            setIsAuthenticated(false)
+            setCurrentUser(null)
+          }
+        }
+      }
+    }
+
+    const handleRetry = (err, delay) => {
+      const isInvalidResponse = err.message === 'Invalid health check response'
+      const isCriticalError = isInvalidResponse || (err.response && err.response.status !== 503)
+
+      if (isCriticalError && isMounted) {
+        setIsLoading(true)
+        setBackendError("Server is unreachable or returned an error. Please check the server status or try a different URL.")
+      }
+
+      if (isMounted) {
+        setRetryCount(prev => prev + 1)
+        let remainingDelay = Math.ceil(delay / 1000)
+        
+        if (backendError == null) setBackendError(`Cannot connect to server.`)
+
+        countdownInterval = setInterval(() => {
+          remainingDelay -= 1
+          setRetryTimer(remainingDelay)
+          if (remainingDelay <= 0) {
+            clearInterval(countdownInterval)
+          } else if (isMounted && backendError == null) {
+            setBackendError(`Cannot connect to server.`)
+          }
+        }, 1000)
+
+        const nextDelay = Math.min(delay * 1.5, 30000)
+        retryTimeout = setTimeout(() => {
+          if (isMounted) checkBackend(nextDelay)
+        }, delay)
+      }
+    }
+
     const checkBackend = async (delay = 1000) => {
       if (countdownInterval) clearInterval(countdownInterval)
 
@@ -37,70 +94,15 @@ function App() {
         if (typeof response.data !== 'object' || response.data.status !== 'UP') {
           throw new Error('Invalid health check response')
         }
-
-        // Backend is UP, now check/validate session (Updates check)
-        const token = localStorage.getItem('token')
-        const userStr = localStorage.getItem('currentUser')
         
+        await validateSession()
+
         if (isMounted) {
-          if (token && userStr) {
-            try {
-              const user = JSON.parse(userStr)
-              // Attempt to fetch a protected resource to verify the token is still valid
-              await apiClient.get('/api/servers') 
-              setIsAuthenticated(true)
-              setCurrentUser(user)
-            } catch (authErr) {
-              console.error('Session validation failed:', authErr)
-              localStorage.removeItem('token')
-              localStorage.removeItem('currentUser')
-              setIsAuthenticated(false)
-              setCurrentUser(null)
-            }
-          }
-          
-          setIsLoading(false) // Only stop loading once backend and session are verified
+          setIsLoading(false)
           setBackendError(null)
         }
       } catch (err) {
-        // If we get an explicit error response from the server (not a 503),
-        // or if we hit the manual "Invalid response" throw, stop loading.
-        // We only retry on 503 (server starting) or network errors (no response).
-        const isInvalidResponse = err.message === 'Invalid health check response'
-        
-        if (isInvalidResponse || (err.response && err.response.status !== 503)) {
-          // If the server explicitly errored (e.g., 404/500), the backend is "reachable" 
-          // but potentially broken. We stop loading to show the auth/error state.
-           if (isMounted) {
-             setIsLoading(true)
-             setBackendError("Server is unreachable or returned an error. Please check the server status or try a different URL.")
-           }
-
-        }
-
-        if (isMounted) {
-          setRetryCount(prev => prev + 1)
-          let remainingDelay = Math.ceil(delay / 1000)
-          
-          if (backendError == null) {
-            setBackendError(`Cannot connect to server.`)
-          }
-
-          countdownInterval = setInterval(() => {
-            remainingDelay -= 1
-            setRetryTimer(remainingDelay)
-            if (remainingDelay > 0) {
-              if (isMounted && backendError == null) setBackendError(`Cannot connect to server.`)
-            } else {
-              clearInterval(countdownInterval)
-            }
-          }, 1000)
-
-          const nextDelay = Math.min(delay * 1.5, 30000)
-          retryTimeout = setTimeout(() => {
-            if (isMounted) checkBackend(nextDelay)
-          }, delay)
-        }
+        handleRetry(err, delay)
       }
     }
 

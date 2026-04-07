@@ -14,7 +14,6 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(urlsToCache).catch(err => {
         console.warn('Cache addAll error:', err)
-        return Promise.resolve()
       })
     })
   )

@@ -8,7 +8,6 @@ import './MessageThread.css' // Assuming you have or will create this CSS
 export default function MessageThread({ serverId, channel, currentUser }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [serverOwnerId, setServerOwnerId] = useState(null)
@@ -38,14 +37,29 @@ export default function MessageThread({ serverId, channel, currentUser }) {
 
   const fetchMessages = async () => {
     try {
-      setLoading(true)
       const response = await messageAPI.list(channel.id)
       // Assuming API returns a list or page object. Adjust if needed.
       setMessages(Array.isArray(response.data) ? response.data : response.data.content || [])
     } catch (err) {
       console.error('Failed to fetch messages:', err)
-    } finally {
-      setLoading(false)
+    }
+  }
+
+  const updateMessageList = (message) => {
+    setMessages(prev => {
+      const index = prev.findIndex(m => m.id === message.id)
+      if (index === -1) return [...prev, message]
+      return prev.map((m, i) => (i === index ? message : m))
+    })
+  }
+
+  const handleSocketMessage = (event) => {
+    try {
+      const message = JSON.parse(event.data)
+      // For now, assume any message received is a new or updated chat message
+      updateMessageList(message)
+    } catch (e) {
+      console.error('WS Error:', e)
     }
   }
 
@@ -54,39 +68,17 @@ export default function MessageThread({ serverId, channel, currentUser }) {
       socketRef.current.close()
     }
 
-    // Use the global API URL if injected (by E2E tests), otherwise infer from window
     const baseUrl = window.__API_URL__ || window.location.origin.replace(/^http/, 'ws')
-    // Adjust path based on your backend WebSocket endpoint
     const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/chat/${channel.id}`
     
-    // Note: If your backend uses a different WS strategy (e.g. STOMP, Socket.io), adjust here.
-    // This assumes a simple raw WebSocket for demo purposes matching the E2E requirement.
     try {
         const socket = new WebSocket(wsUrl)
-        
-        socket.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data)
-            // Handle different event types if your backend sends them
-            // For now, assume any message received is a new chat message
-            setMessages(prev => {
-              const index = prev.findIndex(m => m.id === message.id)
-              if (index !== -1) {
-                return prev.map((m, i) => (i === index ? message : m))
-              }
-              return [...prev, message]
-            })
-          } catch (e) {
-            console.error('WS Error:', e)
-          }
-        }
-        
+        socket.onmessage = handleSocketMessage
         socketRef.current = socket
     } catch (e) {
         console.warn("WebSocket setup failed", e);
     }
   }
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -97,10 +89,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
 
     try {
       const response = await messageAPI.create(channel.id, input)
-      setMessages(prev => {
-        if (prev.some(m => m.id === response.data.id)) return prev
-        return [...prev, response.data]
-      })
+      updateMessageList(response.data)
       setInput('')
       setShowEmojiPicker(false)
     } catch (err) {
@@ -135,7 +124,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
     if (!editContent.trim()) return
     try {
       const response = await messageAPI.update(channel.id, messageId, editContent)
-      setMessages(prev => prev.map(m => m.id === messageId ? response.data : m))
+      updateMessageList(response.data)
       setEditingMessageId(null)
       setEditContent('')
     } catch (err) {

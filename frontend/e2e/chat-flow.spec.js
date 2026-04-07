@@ -7,63 +7,61 @@ const API_URL = process.env.API_URL || 'http://localhost:8080'; // Backend (Quar
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'; // Frontend (Docker: 3000, Dev: 5173)
 let userRef, serverRef, channelRef, messageRef = null;
 
-test.describe('Resonant E2E Tests', () => {
-
   // --- Helpers ---
-  function generateUserData(prefix = 'user') {
-    const id = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-    return {
-      username: `${prefix}_${id}`,
-      email: `${prefix}_${id}@example.com`,
-      password: 'Password123!'
-    };
-  }
+function generateUserData(prefix = 'user') {
+  const id = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  return {
+    username: `${prefix}_${id}`,
+    email: `${prefix}_${id}@example.com`,
+    password: 'Password123!'
+  };
+}
+async function loginUser(page, username, password) {
+  await page.goto(`${APP_URL}/auth`);
+  await page.getByRole('textbox', { name: 'Username' }).fill(username);
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Login' }).click();
+}
 
-  async function loginUser(page, username, password) {
-    await page.goto(`${APP_URL}/auth`);
-    await page.getByRole('textbox', { name: 'Username' }).fill(username);
-    await page.getByLabel('Password').fill(password);
-    await page.getByRole('button', { name: 'Login' }).click();
-  }
+// We use this to populate the DB before specific tests
+async function seedChatEnvironment(request) {
+  const user = generateUserData('e2e_user');
+  const timestamp = Date.now();
+  // 1. Register User via API
+  const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: user });
+  expect(regResponse.ok()).toBeTruthy();
+  const { token } = await regResponse.json();
 
-  // We use this to populate the DB before specific tests
-  async function seedChatEnvironment(request) {
-    const user = generateUserData('e2e_user');
-    const timestamp = Date.now();
-    // 1. Register User via API
-    const regResponse = await request.post(`${API_URL}/api/auth/register`, { data: user });
-    expect(regResponse.ok()).toBeTruthy();
-    const { token } = await regResponse.json();
+  // 2. Create Server via API
+  const serverData = { name: `E2E Server ${timestamp}`, description: 'Test Server' };
+  const serverResponse = await request.post(`${API_URL}/api/servers`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: serverData
+  });
+  expect(serverResponse.ok()).toBeTruthy();
+  const server = await serverResponse.json();
 
-    // 2. Create Server via API
-    const serverData = { name: `E2E Server ${timestamp}`, description: 'Test Server' };
-    const serverResponse = await request.post(`${API_URL}/api/servers`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: serverData
-    });
-    expect(serverResponse.ok()).toBeTruthy();
-    const server = await serverResponse.json();
+  // 3. Create Channel via API
+  const channelData = { name: 'general', description: 'General Chat' };
+  const channelResponse = await request.post(`${API_URL}/api/servers/${server.id}/channels`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: channelData
+  });
+  expect(channelResponse.ok()).toBeTruthy();
+  const channel = await channelResponse.json();
 
-    // 3. Create Channel via API
-    const channelData = { name: 'general', description: 'General Chat' };
-    const channelResponse = await request.post(`${API_URL}/api/servers/${server.id}/channels`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: channelData
-    });
-    expect(channelResponse.ok()).toBeTruthy();
-    const channel = await channelResponse.json();
+  // 4. Create a Historical Message via API
+  const messageData = { content: `Historical message from ${timestamp}` };
+  const msgResponse = await request.post(`${API_URL}/api/channels/${channel.id}/messages`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: messageData
+  });
+  expect(msgResponse.ok()).toBeTruthy();
 
-    // 4. Create a Historical Message via API
-    const messageData = { content: `Historical message from ${timestamp}` };
-    const msgResponse = await request.post(`${API_URL}/api/channels/${channel.id}/messages`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: messageData
-    });
-    expect(msgResponse.ok()).toBeTruthy();
+  return { user, server, channel, messageData };
+}
 
-    return { user, server, channel, messageData };
-  }
-
+test.describe('Resonant E2E Tests', () => {
   // --- Tests ---
 
   test.beforeEach(async ({ page }) => {

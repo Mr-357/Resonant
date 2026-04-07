@@ -18,7 +18,7 @@ apiClient.interceptors.request.use(
     return config
   },
   (error) => {
-    return Promise.reject(error)
+    throw error
   }
 )
 
@@ -32,7 +32,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('currentUser')
       window.location.href = '/auth'
     }
-    return Promise.reject(error)
+    throw error
   }
 )
 
