@@ -16,10 +16,15 @@ export default function Modal({ isOpen, onClose, title, children }) {
       }}
       aria-label="Close modal"
     >
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div 
+        className="modal-content" 
+        onClick={e => e.stopPropagation()} 
+        onKeyDown={e => e.stopPropagation()}
+        role="none"
+      >
         <div className="modal-header">
           <h3>{title}</h3>
-          <button className="modal-close-btn" onClick={onClose}>&times;</button>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">&times;</button>
         </div>
         <div className="modal-body">{children}</div>
       </div>

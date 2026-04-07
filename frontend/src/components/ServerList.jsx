@@ -227,7 +227,12 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         }}
         aria-label="Close discovery"
         >
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{
+          <div 
+            className="modal-content" 
+            onClick={e => e.stopPropagation()} 
+            onKeyDown={e => e.stopPropagation()}
+            role="none"
+            style={{
             backgroundColor: 'var(--bg-primary)', padding: '20px', borderRadius: '5px', 
             width: '400px', maxHeight: '80vh', overflowY: 'auto', color: 'white', border: '1px solid var(--border-tertiary)'
           }}>
