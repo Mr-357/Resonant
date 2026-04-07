@@ -5,11 +5,9 @@ export default function Loading() {
   return (
     <div className="loading-container">
       <div className="loading-content">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-        </div>
+        <span className="loader"></span>
         <h1 className="loading-title">Resonant</h1>
-        <p className="loading-text">Loading...</p>
+        <div className="loader-text"></div>
       </div>
     </div>
   )

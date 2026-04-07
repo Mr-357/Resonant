@@ -1,0 +1,35 @@
+:root {
+  /* Backgrounds */
+  --bg-primary: #36393f;
+  --bg-secondary: #2f3136;
+  --bg-tertiary: #202225;
+  --bg-sidebar: #2c2f33;
+  --bg-user-panel: #292b2f;
+  --bg-modifier-accent: #40444b;
+  --bg-modifier-hover: #3c3f45;
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+  --bg-overlay-heavy: rgba(0, 0, 0, 0.7);
+
+  /* Brand & Actions */
+  --accent-primary: #5865F2;
+  --accent-hover: #4752c4;
+
+  /* Feedback & Status */
+  --status-danger: #ed4245;
+  --status-error: #f04747;
+  --status-success: #43b581;
+  --loading-start: #ffffffa3;
+  --loading-end: #241e29;
+  --loading-gradient-start: #113248;
+  --loading-gradient-end: #416dd4;
+
+  /* Text */
+  --text-normal: #dcddde;
+  --text-header: #ffffff;
+  --text-muted: #b9bbbe;
+  --text-subtle: #72767d;
+
+  /* Borders */
+  --border-secondary: #2f3136;
+  --border-tertiary: #202225;
+}

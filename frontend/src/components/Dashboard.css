@@ -3,12 +3,12 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #36393F;
+  background: var(--bg-primary);
 }
 
 .sidebar {
   width: 70px;
-  background: #2C2F33;
+  background: var(--bg-sidebar);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -17,7 +17,7 @@
 
 .sidebar-secondary {
   width: 240px;
-  background: #2F3136;
+  background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
@@ -29,11 +29,11 @@
 
 .user-panel {
   height: 52px;
-  background: #292B2F;
+  background: var(--bg-user-panel);
   display: flex;
   align-items: center;
   padding: 0 8px;
-  border-top: 1px solid #202225;
+  border-top: 1px solid var(--border-tertiary);
 }
 
 .user-info {
@@ -41,7 +41,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  color: #B9BBBE;
+  color: var(--text-muted);
   font-size: 0.9em;
   font-weight: 500;
   padding: 0 8px;
@@ -52,19 +52,19 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #36393F;
+  background: var(--bg-primary);
 }
 
 .top-bar {
   height: 48px;
-  border-bottom: 1px solid #202225;
+  border-bottom: 1px solid var(--border-tertiary);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: #36393F;
+  background: var(--bg-primary);
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  color: #FFFFFF;
+  color: var(--text-header);
 }
 
 .messages-panel {

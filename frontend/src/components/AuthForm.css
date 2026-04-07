@@ -3,11 +3,11 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: linear-gradient(135deg, #36393F 0%, #202225 100%);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-tertiary) 100%);
 }
 
 .auth-form {
-  background: #2C2F33;
+  background: var(--bg-sidebar);
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
@@ -18,13 +18,13 @@
 .auth-title {
   font-size: 2rem;
   font-weight: bold;
-  color: #5865F2;
+  color: var(--accent-primary);
   margin-bottom: 0.5rem;
   text-align: center;
 }
 
 .auth-subtitle {
-  color: #72767D;
+  color: var(--text-subtle);
   text-align: center;
   margin-bottom: 2rem;
 }
@@ -36,7 +36,7 @@
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #B9BBBE;
+  color: var(--text-muted);
   font-weight: 500;
   font-size: 0.875rem;
 }
@@ -44,9 +44,9 @@
 .form-group input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #202225;
-  background: #40444B;
-  color: #DCDDDE;
+  border: 1px solid var(--border-tertiary);
+  background: var(--bg-modifier-accent);
+  color: var(--text-normal);
   border-radius: 4px;
   font-size: 1rem;
   transition: border-color 0.2s;
@@ -54,25 +54,25 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #5865F2;
-  background: #36393F;
+  border-color: var(--accent-primary);
+  background: var(--bg-primary);
 }
 
 .error-message {
-  color: #F04747;
+  color: var(--status-error);
   font-size: 0.875rem;
   margin-bottom: 1rem;
   padding: 0.75rem;
   background: rgba(240, 71, 71, 0.1);
-  border-left: 3px solid #F04747;
+  border-left: 3px solid var(--status-error);
   border-radius: 4px;
 }
 
 .auth-button {
   width: 100%;
   padding: 0.75rem;
-  background: #5865F2;
-  color: white;
+  background: var(--accent-primary);
+  color: var(--text-header);
   border: none;
   border-radius: 4px;
   font-weight: 600;
@@ -81,7 +81,7 @@
 }
 
 .auth-button:hover:not(:disabled) {
-  background: #4752C4;
+  background: var(--accent-hover);
 }
 
 .auth-button:disabled {

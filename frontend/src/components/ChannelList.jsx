@@ -143,12 +143,12 @@ export default function ChannelList({ serverId, activeChannelId, onChannelSelect
             placeholder="Channel name" 
             value={newChannelName}
             onChange={(e) => setNewChannelName(e.target.value)}
-            style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '3px', border: 'none', backgroundColor: '#202225', color: 'white' }}
+            style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '3px', border: 'none', backgroundColor: 'var(--border-tertiary)', color: 'white' }}
             autoFocus
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
-            <button type="submit" disabled={!newChannelName.trim()} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#5865F2', color: 'white' }}>Create</button>
+            <button type="submit" disabled={!newChannelName.trim()} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--accent-primary)', color: 'white' }}>Create</button>
           </div>
         </form>
       </Modal>
@@ -159,17 +159,17 @@ export default function ChannelList({ serverId, activeChannelId, onChannelSelect
         title="Channel Settings"
       >
         <form onSubmit={handleUpdateChannel}>
-          <label htmlFor="channel-settings-name" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b9bbbe' }}>CHANNEL NAME</label>
+          <label htmlFor="channel-settings-name" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--text-muted)' }}>CHANNEL NAME</label>
           <input 
             id="channel-settings-name"
             type="text" 
             value={editChannelName}
             onChange={(e) => setEditChannelName(e.target.value)}
-            style={{ width: '100%', padding: '10px', marginBottom: '20px', borderRadius: '3px', border: 'none', backgroundColor: '#202225', color: 'white' }}
+            style={{ width: '100%', padding: '10px', marginBottom: '20px', borderRadius: '3px', border: 'none', backgroundColor: 'var(--border-tertiary)', color: 'white' }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
-            <button type="button" onClick={handleDeleteChannel} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#ed4245', color: 'white' }}>Delete Channel</button>
-            <button type="submit" style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#5865F2', color: 'white' }}>Save Changes</button>
+            <button type="button" onClick={handleDeleteChannel} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Delete Channel</button>
+            <button type="submit" style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--accent-primary)', color: 'white' }}>Save Changes</button>
           </div>
         </form>
       </Modal>

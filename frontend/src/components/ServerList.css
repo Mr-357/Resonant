@@ -10,9 +10,9 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #2C2F33;
+  background: var(--bg-sidebar);
   border: 2px solid transparent;
-  color: #B9BBBE;
+  color: var(--text-muted);
   font-weight: bold;
   font-size: 1.25rem;
   cursor: pointer;
@@ -23,22 +23,22 @@
 }
 
 .server-button:hover {
-  border-color: #5865F2;
-  color: #5865F2;
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .server-button.active {
-  background: #5865F2;
+  background: var(--accent-primary);
   color: white;
-  border-color: #5865F2;
+  border-color: var(--accent-primary);
 }
 
 .server-button.add-server {
-  background: #3C3F45;
-  color: #43B581;
+  background: var(--bg-modifier-hover);
+  color: var(--status-success);
 }
 
 .server-button.add-server:hover {
-  background: #43B581;
+  background: var(--status-success);
   color: white;
 }

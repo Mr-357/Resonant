@@ -130,12 +130,12 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
               {isLogin ? 'Register' : 'Login'}
             </button>
           </p>
-          <div style={{ marginTop: '15px', borderTop: '1px solid #2f3136', paddingTop: '10px' }}>
-            <button type="button" onClick={onChangeServer} style={{ background: 'none', border: 'none', color: '#72767d', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}>
+          <div style={{ marginTop: '15px', borderTop: '1px solid var(--border-secondary)', paddingTop: '10px' }}>
+            <button type="button" onClick={onChangeServer} style={{ background: 'none', border: 'none', color: 'var(--text-subtle)', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}>
               Change Server
             </button>
             {serverUrl && serverUrl !== '/' && (
-              <div style={{ color: '#72767d', fontSize: '0.75rem', marginTop: '4px' }}>
+              <div style={{ color: 'var(--text-subtle)', fontSize: '0.75rem', marginTop: '4px' }}>
                 Connecting to: {serverUrl}
               </div>
             )}

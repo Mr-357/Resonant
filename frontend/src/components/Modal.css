@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--bg-overlay-heavy);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -12,14 +12,14 @@
 }
 
 .modal-content {
-  background-color: #36393f;
+  background-color: var(--bg-primary);
   padding: 20px;
   border-radius: 5px;
   width: 400px;
   max-width: 90%;
-  color: white;
-  border: 1px solid #202225;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  color: var(--text-header);
+  border: 1px solid var(--border-tertiary);
+  box-shadow: 0 4px 15px var(--bg-overlay);
 }
 
 .modal-header {
@@ -32,13 +32,13 @@
 .modal-header h3 {
   margin: 0;
   font-size: 1.2rem;
-  color: #fff;
+  color: var(--text-header);
 }
 
 .modal-close-btn {
   background: none;
   border: none;
-  color: #b9bbbe;
+  color: var(--text-muted);
   font-size: 24px;
   cursor: pointer;
   padding: 0;
@@ -46,7 +46,7 @@
 }
 
 .modal-close-btn:hover {
-  color: #fff;
+  color: var(--text-header);
 }
 
 .modal-body {

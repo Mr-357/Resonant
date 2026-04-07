@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard'
 import Loading from './components/Loading'
 import apiClient from './api/client'
 import './App.css'
+import './theme.css'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -153,20 +154,20 @@ function App() {
       <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Loading />
         {backendError && (
-          <div style={{ position: 'absolute', bottom: '20%', width: '100%', textAlign: 'center', color: '#ff6b6b', fontWeight: 'bold' }}>
+          <div style={{ position: 'absolute', bottom: '20%', width: '100%', textAlign: 'center', color: 'var(--status-error)', fontWeight: 'bold' }}>
             {backendError}
             <br></br>Retrying connection in .. {retryTimer} seconds
             {(retryCount >= 1 || backendError === 'Configure Server Connection') && (
               <form onSubmit={handleCustomUrlSubmit} style={{ marginTop: '15px' }}>
-                <p style={{ color: '#b9bbbe', fontSize: '0.9rem', marginBottom: '5px' }}>Is the server hosted elsewhere?</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '5px' }}>Is the server hosted elsewhere?</p>
                 <input 
                   type="text" 
                   placeholder="http://localhost:8080" 
                   value={customBackendUrl}
                   onChange={(e) => setCustomBackendUrl(e.target.value)}
-                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #202225', marginRight: '5px' }}
+                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-tertiary)', marginRight: '5px' }}
                 />
-                <button type="submit" style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', backgroundColor: '#5865F2', color: 'white', cursor: 'pointer' }}>
+                <button type="submit" style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', backgroundColor: 'var(--accent-primary)', color: 'white', cursor: 'pointer' }}>
                   Connect
                 </button>
               </form>

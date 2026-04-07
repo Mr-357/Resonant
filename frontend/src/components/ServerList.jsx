@@ -196,7 +196,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       ))}
 
       {activeServer && (
-        <div className="server-list-footer" style={{ marginTop: 'auto', padding: '15px 5px', textAlign: 'center', borderTop: '2px solid #202225', width: '100%' }}>
+        <div className="server-list-footer" style={{ marginTop: 'auto', padding: '15px 5px', textAlign: 'center', borderTop: '2px solid var(--border-tertiary)', width: '100%' }}>
           <div className="active-server-name" style={{ color: 'white', fontWeight: 'bold', fontSize: '12px', marginBottom: '8px', wordBreak: 'break-word' }}>
             {activeServer.name}
           </div>
@@ -216,16 +216,16 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       {showDiscovery && (
         <div className="modal-backdrop" onClick={() => setShowDiscovery(false)} style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', 
+          backgroundColor: 'var(--bg-overlay)', display: 'flex', justifyContent: 'center', 
           alignItems: 'center', zIndex: 1000
         }}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{
-            backgroundColor: '#36393f', padding: '20px', borderRadius: '5px', 
-            width: '400px', maxHeight: '80vh', overflowY: 'auto', color: 'white', border: '1px solid #202225'
+            backgroundColor: 'var(--bg-primary)', padding: '20px', borderRadius: '5px', 
+            width: '400px', maxHeight: '80vh', overflowY: 'auto', color: 'white', border: '1px solid var(--border-tertiary)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', borderBottom: '1px solid #2f3136' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', borderBottom: '1px solid var(--border-secondary)' }}>
               <h3 style={{ margin: 0 }}>Discover Servers</h3>
-              <button onClick={refreshDiscoveryList} disabled={discoveryLoading} style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#5865F2', color: 'white', border: 'none', borderRadius: '3px' }}>
+              <button onClick={refreshDiscoveryList} disabled={discoveryLoading} style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '3px' }}>
                 {discoveryLoading ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>
@@ -234,13 +234,13 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
               {allServers
                 .filter(server => !servers.some(s => String(s.id) === String(server.id)))
                 .map(server => (
-                <div key={server.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#2f3136', borderRadius: '4px' }}>
+                <div key={server.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px' }}>
                   <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <div style={{ fontWeight: 'bold' }}>{server.name}</div>
-                    <div style={{ fontSize: '0.8em', color: '#b9bbbe' }}>{server.description || 'No description'}</div>
+                    <div style={{ fontSize: '0.8em', color: 'var(--text-muted)' }}>{server.description || 'No description'}</div>
                   </div>
                   <button onClick={() => handleJoinServer(server.id)} style={{
-                    backgroundColor: '#5865F2', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '3px', cursor: 'pointer', marginLeft: '10px'
+                    backgroundColor: 'var(--accent-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '3px', cursor: 'pointer', marginLeft: '10px'
                   }}>Join</button>
                 </div>
               ))}
@@ -261,12 +261,12 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
             placeholder="Server name" 
             value={newServerName}
             onChange={(e) => setNewServerName(e.target.value)}
-            style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '3px', border: 'none', backgroundColor: '#202225', color: 'white' }}
+            style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '3px', border: 'none', backgroundColor: 'var(--bg-tertiary)', color: 'white' }}
             autoFocus
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
-            <button type="submit" disabled={!newServerName.trim()} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#5865F2', color: 'white' }}>Create</button>
+            <button type="submit" disabled={!newServerName.trim()} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--accent-primary)', color: 'white' }}>Create</button>
           </div>
         </form>
       </Modal>
@@ -277,28 +277,28 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         title="Server Settings"
       >
         <form onSubmit={handleUpdateServer} style={{ marginBottom: '20px' }}>
-          <label htmlFor="server-settings-name" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b9bbbe' }}>SERVER NAME</label>
+          <label htmlFor="server-settings-name" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--text-muted)' }}>SERVER NAME</label>
           <div style={{ display: 'flex', gap: '10px' }}>
             <input
               id="server-settings-name"
               type="text"
               value={settingsName}
               onChange={(e) => setSettingsName(e.target.value)}
-              style={{ flex: 1, padding: '10px', borderRadius: '3px', border: 'none', backgroundColor: '#202225', color: 'white' }}
+              style={{ flex: 1, padding: '10px', borderRadius: '3px', border: 'none', backgroundColor: 'var(--bg-tertiary)', color: 'white' }}
             />
-            <button type="submit" style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#202225', color: 'white' }}>Update</button>
+            <button type="submit" style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--bg-tertiary)', color: 'white' }}>Update</button>
           </div>
         </form>
 
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#b9bbbe' }}>MEMBERS</label>
-          <div style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: '#2f3136', borderRadius: '4px', padding: '5px' }}>
-            {loadingMembers ? <div style={{ padding: '10px', color: '#72767d' }}>Loading members...</div> : 
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--text-muted)' }}>MEMBERS</label>
+          <div style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px', padding: '5px' }}>
+            {loadingMembers ? <div style={{ padding: '10px', color: 'var(--text-subtle)' }}>Loading members...</div> : 
               settingsMembers.map(member => (
-                <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', borderBottom: '1px solid #202225' }}>
+                <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', borderBottom: '1px solid var(--border-tertiary)' }}>
                   <span>{member.username}</span>
                   {String(member.id) !== String(effectiveUser?.id) && (
-                    <button onClick={() => handleRemoveMember(member.id)} style={{ backgroundColor: '#ed4245', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.8em' }}>Kick</button>
+                    <button onClick={() => handleRemoveMember(member.id)} style={{ backgroundColor: 'var(--status-danger)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.8em' }}>Kick</button>
                   )}
                 </div>
               ))
@@ -306,9 +306,9 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
           </div>
         </div>
 
-        <div style={{ borderTop: '1px solid #2f3136', paddingTop: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#ed4245' }}>DANGER ZONE</label>
-          <button onClick={handleDeleteServer} style={{ width: '100%', padding: '10px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#ed4245', color: 'white', fontWeight: 'bold' }}>Delete Server</button>
+        <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--status-danger)' }}>DANGER ZONE</label>
+          <button onClick={handleDeleteServer} style={{ width: '100%', padding: '10px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white', fontWeight: 'bold' }}>Delete Server</button>
         </div>
       </Modal>
 
@@ -320,7 +320,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         <p>Are you sure you want to leave <strong>{serverToLeave?.name}</strong>?</p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
           <button onClick={() => setServerToLeave(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={confirmLeaveServer} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: '#ed4245', color: 'white' }}>Leave Server</button>
+          <button onClick={confirmLeaveServer} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Leave Server</button>
         </div>
       </Modal>
     </div>

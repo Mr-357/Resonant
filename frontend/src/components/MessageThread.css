@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #36393F;
+  background: var(--bg-primary);
   position: relative;
 }
 
@@ -11,14 +11,14 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #72767D;
+  color: var(--text-subtle);
   text-align: center;
 }
 
 .message-thread.empty {
   align-items: center;
   justify-content: center;
-  color: #72767D;
+  color: var(--text-subtle);
 }
 
 .messages-list {
@@ -35,12 +35,12 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #72767D;
+  color: var(--text-subtle);
   text-align: center;
 }
 
 .message-item {
-  color: #DCDDDE;
+  color: var(--text-normal);
   word-wrap: break-word;
 }
 
@@ -53,12 +53,12 @@
 
 .author-name {
   font-weight: 600;
-  color: #fff;
+  color: var(--text-header);
   font-size: 1rem;
 }
 
 .timestamp {
-  color: #72767D;
+  color: var(--text-subtle);
   font-size: 0.75rem;
 }
 
@@ -92,27 +92,27 @@
 
 .message-input-area {
   padding: 16px;
-  background: #2F3136;
-  border-top: 1px solid #202225;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-tertiary);
   display: flex;
   gap: 10px;
   align-items: flex-start;
 }
 
 .error-message {
-  color: #f04747;
+  color: var(--status-error);
   font-size: 0.85rem;
   padding: 8px 12px;
   background: rgba(240, 71, 71, 0.1);
   border-radius: 4px;
-  border-left: 3px solid #f04747;
+  border-left: 3px solid var(--status-error);
 }
 
 .input-wrapper {
   display: flex;
   flex: 1;
   align-items: center;
-  background: #40444B;
+  background: var(--bg-modifier-accent);
   border-radius: 8px;
   padding: 0 10px;
   position: relative; /* For emoji picker positioning */
@@ -123,7 +123,7 @@
   padding: 12px 10px;
   background: transparent;
   border: none;
-  color: #DCDDDE;
+  color: var(--text-normal);
   font-size: 1rem;
   outline: none;
 }
@@ -152,8 +152,8 @@
 
 .message-input-area button[type="submit"] {
   padding: 8px 20px;
-  background: #5865F2;
-  color: white;
+  background: var(--accent-primary);
+  color: var(--text-header);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -164,11 +164,11 @@
 
 
 .message-input-area button[type="submit"]:hover:not(:disabled) {
-  background: #4752C4;
+  background: var(--accent-hover);
 }
 
 .message-input-area button[type="submit"]:disabled {
-  background: #72767D;
+  background: var(--text-subtle);
   cursor: not-allowed;
 }
 
@@ -177,7 +177,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  background: #2f3136;
+  background: var(--bg-secondary);
   padding: 8px;
   border-radius: 4px;
   width: 100%;
@@ -185,9 +185,9 @@
 
 .edit-message-form input {
   flex: 1;
-  background: #40444b;
+  background: var(--bg-modifier-accent);
   border: none;
-  color: white;
+  color: var(--text-header);
   padding: 8px;
   border-radius: 4px;
 }
@@ -197,14 +197,14 @@
   border: none;
   border-radius: 3px;
   cursor: pointer;
-  background: #5865f2;
-  color: white;
+  background: var(--accent-primary);
+  color: var(--text-header);
   font-size: 0.85rem;
 }
 
 .edit-message-form button.cancel {
   background: transparent;
-  color: #dcddde;
+  color: var(--text-normal);
 }
 
 .edit-message-form button.cancel:hover {
