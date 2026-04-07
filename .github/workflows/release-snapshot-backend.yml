@@ -27,7 +27,8 @@ jobs:
         run: rm -f backend/src/main/resources/application.yml backend/src/main/resources/application.yaml
 
       - name: Build Uber-JAR
-        run: mvn -B package -DskipTests -Dquarkus.package.jar.type=uber-jar --file backend/pom.xml
+      # We override the datasource configuration to avoid build failures due to missing DB during the build process. The actual configuration will be provided at runtime via environment variables or a mounted config file in production.
+        run: mvn -B package -DskipTests -Dquarkus.package.jar.type=uber-jar -Dquarkus.datasource.db-kind=postgresql -Dquarkus.datasource.username=dummy -Dquarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/dummy --file backend/pom.xml
 
       - name: Create Latest Snapshot Release
         uses: softprops/action-gh-release@v2
