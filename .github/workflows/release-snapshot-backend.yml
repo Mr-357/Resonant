@@ -64,7 +64,7 @@ jobs:
       
 
   release:
-    needs: build
+    needs: [build, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
