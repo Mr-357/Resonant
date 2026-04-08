@@ -118,4 +118,5 @@ jobs:
           prerelease: false
           title: "Latest Snapshot Build"
           files: |
-            resonant-backend-snapshot-jar.tar.gz
+            resonant-backend-snapshot.tar.gz
+            resonant-backend-snapshot.zip
