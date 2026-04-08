@@ -31,7 +31,6 @@ jobs:
         with:
           name: build-artifacts
           path: |
-            backend/target/*-runner.jar
             backend/target/*-runner
 
 
@@ -110,8 +109,7 @@ jobs:
           cp backend/generate-keys.ps1 release-dist-windows/
           tar -zcvf resonant-backend-snapshot.tar.gz release-dist/
           cp artifacts/build-artifacts-windows/* release-dist-windows/
-          cp artifacts/build-artifacts/*.jar release-dist-windows/
-          zip -r resonant-backend-snapshot-jar.zip release-dist-windows/
+          zip -r resonant-backend-snapshot.zip release-dist-windows/
 
       - name: Create Latest Snapshot Release
         uses: softprops/action-gh-release@v2
