@@ -45,11 +45,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Set up GraalVM JDK
-        run: |
-          choco install graalvm -y
-          echo "JAVA_HOME=C:\Program Files\GraalVM\graalvm-community-openjdk-25.0.1+8.1\" >> $GITHUB_ENV
-          echo "PATH=C:\Program Files\GraalVM\graalvm-community-openjdk-25.0.1+8.1\bin;$env:PATH" >> $GITHUB_ENV
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Native Image Windows
         run: |
