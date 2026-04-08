@@ -6,34 +6,106 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
-    name: Build and Release Latest
+  build:
+    name: Build and Release Latest Snapshot Linux
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '25'
           distribution: 'temurin'
           cache: maven
 
-      - name: Remove application configuration from build
-        run: rm -f backend/src/main/resources/application.yml backend/src/main/resources/application.yaml
+      - name: Build Native Image Linux
+        run: mvn -B package -DskipTests -Dnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true --file backend/pom.xml
 
-      - name: Build Uber-JAR
-      # We override the datasource configuration to avoid build failures due to missing DB during the build process. The actual configuration will be provided at runtime via environment variables or a mounted config file in production.
-        run: mvn -B package -DskipTests -Dquarkus.package.jar.type=uber-jar -Dquarkus.datasource.db-kind=postgresql -Dquarkus.datasource.username=dummy -Dquarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/dummy --file backend/pom.xml
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-artifacts
+          path: |
+            backend/target/*-runner.jar
+            backend/target/*-runner
+
+
+  build-windows:
+    name: Build Latest Snapshot Windows
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up GraalVM JDK
+        run: |
+          choco install graalvm -y --version=25.0.2
+          echo "JAVA_HOME=C:\Program Files\GraalVM\graalvm-ce-java25" >> $GITHUB_ENV
+          echo "PATH=C:\Program Files\GraalVM\graalvm-ce-java25\bin;$env:PATH" >> $GITHUB_ENV
+
+      - name: Build Native Image Windows
+        run: mvn -B package -DskipTests -Dnative --file backend/pom.xml
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-artifacts-windows
+          path: |
+            backend/target/*-runner.exe
+
+      
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Get Build Artifacts
+        uses: actions/download-artifact@v8
+
+
+      - name: Generate Example JWT Keys and Self-Signed SSL Certs
+        run: |
+          mkdir -p backend/release-assets
+          mkdir -p backend/release-assets/keys backend/release-assets/certs
+          cp backend/generate-keys.sh backend/release-assets/generate-keys.sh
+          chmod +x backend/release-assets/generate-keys.sh
+          bash backend/release-assets/generate-keys.sh
+
+      - name: Prepare Release Bundle
+        run: |
+          cp artifacts/backend/* backend/target/
+          mkdir -p release-dist/keys release-dist/certs
+          cp backend/target/*-runner.jar release-dist/resonant-backend.jar
+          # Use the repo's config as a template for the user
+          cp backend/src/main/resources/application.yml release-dist/application.yml.example
+          # Copy the generated example keys and certs
+          cp backend/release-assets/keys/* release-dist/keys/
+          cp backend/release-assets/certs/* release-dist/certs/
+          # Copy the key generation script
+          cp backend/release-assets/generate-keys.sh release-dist/
+          cp backend/release-assets/generate-keys.ps1 release-dist/
+          zip -r resonant-backend-snapshot-jar.zip release-dist/
 
       - name: Create Latest Snapshot Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "latest"
+          tag_name: "experimental"
           prerelease: false
           title: "Latest Snapshot Build"
-          files: backend/target/*-runner.jar
+          files: |
+            resonant-backend-snapshot-jar.zip

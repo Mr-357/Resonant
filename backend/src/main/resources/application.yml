@@ -20,24 +20,31 @@ quarkus:
 
 
   datasource:
-    db-kind: postgresql
-    username: resonant
-    password: resonant
+    db-kind: ${DB_KIND:postgresql}
+    username: ${DB_USER:resonant}
+    password: ${DB_PASSWORD:resonant}
     jdbc:
-      url: jdbc:postgresql://localhost:5432/resonant
+      url: ${DB_URL:jdbc:postgresql://localhost:5432/resonant}
   hibernate-orm:
     database:
       generation: none
-    dialect: org.hibernate.dialect.PostgreSQLDialect
+    # Hibernate can usually autodetect the dialect based on the DB kind
 
   redis:
-    hosts: redis://localhost:6379
+    hosts: ${REDIS_HOSTS:redis://localhost:6379}
   flyway:
     migrate-at-start: true
     locations: db/migration/${quarkus.datasource.db-kind}
-# Enable CORS for all origins, methods, and headers. Adjust as needed for production.
+
   http:
-    port: 8080
+    port: ${HTTP_PORT:8080}
+    ssl-port: ${HTTPS_PORT:8443}
+    redirect-insecure-requests: true
+    ssl:
+      certificate:
+        # Relative to the working directory where the app is started
+        files: ${SSL_CERT_PATH:certs/server.crt}
+        key-files: ${SSL_KEY_PATH:certs/server.key}
     cors:
       enabled: true
       origins: "/.*/"
@@ -51,7 +58,7 @@ mp:
       # The server will reject any token where 'iss' claim != this value
       issuer: "resonant-app"
       publickey:
-        location: "publicKey.pem"
+        location: ${JWT_PUBLIC_KEY:keys/publicKey.pem}
 
 smallrye:
   jwt:
@@ -60,7 +67,8 @@ smallrye:
       issuer: "resonant-app"
     sign:
       key:
-        location: "privateKey.pem"
+        location: ${JWT_PRIVATE_KEY:keys/privateKey.pem}
+
   log:
     level: INFO
     category:

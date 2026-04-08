@@ -41,3 +41,5 @@ Thumbs.db
 backend/src/main/resources/privateKey.pem
 backend/src/main/resources/publicKey.pem
 *.sqlite
+backend/certs/
+backend/keys/

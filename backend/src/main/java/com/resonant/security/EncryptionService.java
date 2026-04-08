@@ -1,5 +1,6 @@
 package com.resonant.security;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -19,10 +20,15 @@ public class EncryptionService {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int TAG_LENGTH_BIT = 128;
     private static final int IV_LENGTH_BYTE = 12;
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private SecureRandom secureRandom;
 
     @ConfigProperty(name = "app.encryption.key")
     String secretKey;
+
+    @PostConstruct
+    void init() {
+        this.secureRandom = new SecureRandom();
+    }
 
     private byte[] getDerivedKey(byte[] salt) {
         try {
@@ -42,7 +48,7 @@ public class EncryptionService {
         if (plaintext == null) return null;
         try {
             byte[] iv = new byte[IV_LENGTH_BYTE];
-            SECURE_RANDOM.nextBytes(iv);
+            secureRandom.nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             GCMParameterSpec spec = new GCMParameterSpec(TAG_LENGTH_BIT, iv);

@@ -1,13 +1,12 @@
 # Resonant - Online messaging app
 
-A modern, production-grade Discord-like chat platform built with Quarkus, React, PostgreSQL, and Redis.
+A modern, privacy focused Discord-like chat platform built with Quarkus, React, PostgreSQL, and Redis.
 
 ## Architecture
 
 - **Backend**: Quarkus 3.x with RESTEasy Reactive, PostgreSQL ORM + Flyway migrations
 - **Frontend**: React 18 + Vite, PWA-enabled
-- **Database**: PostgreSQL (relational) + Redis (pub/sub, caching)
-- **Deployment**: Docker containers, Kubernetes-ready
+- **Database**: PostgreSQL (relational) OR SQLite (file-based) + Redis (pub/sub, caching)
 
 ## Features (MVP)
 
@@ -17,8 +16,16 @@ A modern, production-grade Discord-like chat platform built with Quarkus, React,
 - Real-time WebSocket messaging
 - Server Discovery and Join/Leave
 - PWA support (offline caching, desktop install)
-- Configurable rate limiting
-- Full containerization with docker-compose
+
+## Project Structure
+
+`backend` -- Contains all the backend related files: the Quarkus project, Dockerfile for running it and database migrations
+
+`frontend` -- Contains the frontend components, vite config, Playwright tests and Dockerfiles for both the frontend and running e2e tests
+
+`k8s` -- Example Kubernetes manifests
+
+In the root of the project is a docker-compose file for running the app.
 
 ## Quick Start
 
@@ -50,75 +57,13 @@ mvn quarkus:dev
 cd frontend
 npm install
 npm run dev
-# Frontend runs on http://localhost:5173
+# Frontend runs on http://localhost:3000
 ```
 
-## Project Structure
-
-```
-.
-├── backend/                     # Quarkus backend
-│   ├── pom.xml
-│   ├── src/main/java/com/resonant/
-│   │   ├── entity/             # JPA entities
-│   │   ├── resource/           # REST endpoints
-│   │   ├── service/            # Business logic
-│   │   └── dto/                # Data transfer objects
-│   ├── src/main/resources/
-│   │   ├── application.yml     # Quarkus config
-│   │   └── db/migration/       # Flyway migrations
-│   └── Dockerfile
-├── frontend/                    # React frontend
-│   ├── package.json
-│   ├── src/
-│   │   ├── components/         # React components
-│   │   ├── hooks/              # Custom React hooks
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── public/
-│   │   ├── index.html
-│   │   ├── manifest.json       # PWA manifest
-│   │   └── service-worker.js   # Service worker
-│   └── Dockerfile
-├── k8s/                         # Kubernetes manifests
-├── .github/workflows/           # CI/CD pipelines
-└── docker-compose.yml
-
-```
-
-## Configuration
-
-### Rate Limiting
-
-Rate limits are configurable via environment variables or `application.yml`:
-
-```yaml
-app:
-  ratelimit:
-    enabled: true
-    messages-per-minute: 10      # Messages per user per minute
-    channels-per-minute: 5       # Channel creations per user per minute
-    servers-per-minute: 2        # Server creations per user per minute
-    ttl-seconds: 60               # Window for counting requests
-```
-
-For Kubernetes, update `k8s/configmap.yaml`.
-
-
-## Development Workflow
-
-1. Create a branch: `git checkout -b feature/my-feature`
-2. Make changes
-3. Test locally: `mvn test` (backend), `npm test` (frontend)
-4. Commit: `git commit -m "feat: description"`
-5. Push: `git push origin feature/my-feature`
-6. Create PR for code review
 
 ## API Documentation
 
-## OpenAPI/Swagger Documentation
-
-### Accessing the API Documentation
+### OpenAPI/Swagger Documentation
 
 Once the application is running, you can access the interactive API documentation at:
 
@@ -129,12 +74,56 @@ Once the application is running, you can access the interactive API documentatio
 
 ## Deployment
 
-### Local Docker Compose
-```bash
-docker-compose up -d
-```
+There are multiple ways of running the application depending on your technical ability, installed dependencies or system requirements.
 
-### Kubernetes (Minikube)
+
+## "Standalone mode" - easiest for beginners
+
+This mode uses the SQLite database for easiest deployment and no installation of additional dependencies. It's only recommended for demos or a small number of users. Proceed with caution. It's recommended to replace the certificates with your own, or use Let's Encrypt!
+
+1. Download the assets for running the backend from the `release` (link) page.
+2. Modify the application.yaml file based on your needs.
+3. Run the native executable from your terminal of choice:
+
+  - Linux: `./resonant-backend-1-runner -Dquarkus.profile=sqlite`
+  - Windows: `.\resonant-backend-1-runner.exe -Dquarkus.profile=sqlite`
+
+4. Use the frontend from Github Pages (link) to connect to your local backend by changing the instance in the settings:
+
+<screenshot>
+
+Alternatively, deploy the frontend bundle from the releases behind LAMP/WAMP or nginx. See on-prem mode for more details. Other people can connect through a VPN such as Radmin or by exposing the frontend and backend ports to the internet.
+
+
+## Local Docker Compose
+
+This mode also enables easy deployment and all of the services locally, but has similar drawbacks of not being easily accessed over the internet. Requires docker and docker compose installed.
+
+1. Clone the project locally
+2. Run `docker-compose up -d`
+3. Try connecting to `http://localhost:3000`(link)
+  
+
+## On-prem
+
+This method requires nginx (or any other standalone web server), an installation of PostgreSQL and Redis.
+
+Download (or build) the backend binaries and frontend bundle. Configure the backend to point to your databases by modifying the application.yaml file. Put the frontend bundle into your serving directories.
+
+
+## Kubernetes (Minikube)
+
+Build and push images:
+```bash
+docker build -t myregistry/resonant-backend:1.0 ./backend
+docker build -t myregistry/resonant-frontend:1.0 ./frontend
+docker push myregistry/resonant-backend:1.0
+docker push myregistry/resonant-frontend:1.0
+```
+... or use the ones from the github container registry.
+
+Update `k8s/*.yaml` with image URLs and deploy.
+
 ```bash
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/backend-deployment.yaml
@@ -146,20 +135,24 @@ kubectl port-forward svc/resonant-frontend 3000:80
 kubectl port-forward svc/resonant-backend 8080:8080
 ```
 
-### Production
-Build and push images:
-```bash
-docker build -t myregistry/resonant-backend:1.0 ./backend
-docker build -t myregistry/resonant-frontend:1.0 ./frontend
-docker push myregistry/resonant-backend:1.0
-docker push myregistry/resonant-frontend:1.0
-```
-
-Update `k8s/*.yaml` with image URLs and deploy.
 
 ## Troubleshooting
 
 TODO: update with common issues and solutions.
+
+## Roadmap
+
+See Wiki(link).
+
+
+## Contributing
+
+1. Create a branch: `git checkout -b feature/my-feature`
+2. Make changes
+3. Write tests for your feature and make sure they are passing. Playwright tests are really helpful for any big features
+4. Commit: `git commit -m "feat: description"` (use conventional commits if possible)
+5. Push: `git push origin feature/my-feature`
+6. Create PR for code review
 
 ## License
 
