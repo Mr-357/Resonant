@@ -107,7 +107,7 @@ jobs:
           cp backend/release-assets/keys/* release-dist-windows/keys/
           cp backend/release-assets/certs/* release-dist-windows/certs/
           cp backend/release-assets/generate-keys.sh release-dist/
-          cp backend/release-assets/generate-keys.ps1 release-dist-windows/
+          cp backend/generate-keys.ps1 release-dist-windows/
           tar -zcvf resonant-backend-snapshot.tar.gz release-dist/
           cp artifacts/build-artifacts-windows/* release-dist-windows/
           cp artifacts/build-artifacts/*.jar release-dist-windows/
