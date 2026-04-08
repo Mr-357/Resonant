@@ -48,11 +48,13 @@ jobs:
       - name: Set up GraalVM JDK
         run: |
           choco install graalvm -y
-          echo "JAVA_HOME=C:\Program Files\GraalVM\graalvm-ce-java25" >> $GITHUB_ENV
-          echo "PATH=C:\Program Files\GraalVM\graalvm-ce-java25\bin;$env:PATH" >> $GITHUB_ENV
+          echo "JAVA_HOME=C:\Program Files\GraalVM\graalvm-community-openjdk-25.0.1+8.1\" >> $GITHUB_ENV
+          echo "PATH=C:\Program Files\GraalVM\graalvm-community-openjdk-25.0.1+8.1\bin;$env:PATH" >> $GITHUB_ENV
 
       - name: Build Native Image Windows
-        run: mvn -B package -DskipTests -Dnative --file backend/pom.xml
+        run: |
+          mvn -v
+          mvn -B package -DskipTests -Dnative --file backend/pom.xml
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
