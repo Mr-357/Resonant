@@ -90,7 +90,7 @@ jobs:
           cp backend/generate-keys.sh backend/release-assets/generate-keys.sh
           chmod +x backend/release-assets/generate-keys.sh
           cd backend/release-assets
-          bash backend/release-assets/generate-keys.sh
+          bash ./generate-keys.sh
           cd ../../
 
       
