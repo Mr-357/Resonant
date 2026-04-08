@@ -7,17 +7,20 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
+        target: 'https://localhost:8443',
+        changeOrigin: true,
+        secure: false
       },
       '/chat': {
-        target: 'ws://localhost:8080',
+        target: 'wss://localhost:8443',
         ws: true,
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       },
       '/q': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
+        target: 'https://localhost:8443',
+        changeOrigin: true,
+        secure: false
       }
     }
   },

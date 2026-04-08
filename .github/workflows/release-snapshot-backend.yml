@@ -47,7 +47,7 @@ jobs:
 
       - name: Set up GraalVM JDK
         run: |
-          choco install graalvm -y --version=25.0.2
+          choco install graalvm -y
           echo "JAVA_HOME=C:\Program Files\GraalVM\graalvm-ce-java25" >> $GITHUB_ENV
           echo "PATH=C:\Program Files\GraalVM\graalvm-ce-java25\bin;$env:PATH" >> $GITHUB_ENV
 
@@ -76,6 +76,8 @@ jobs:
 
       - name: Get Build Artifacts
         uses: actions/download-artifact@v8
+        with:
+          path: artifacts
 
 
       - name: Generate Example JWT Keys and Self-Signed SSL Certs

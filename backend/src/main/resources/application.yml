@@ -9,6 +9,8 @@
         url: jdbc:sqlite:./resonant.sqlite
         min-size: 1
     hibernate-orm:
+      database:
+        generation: update
       mapping:
         uuid:
           preferred-jdbc-type: VARCHAR
@@ -39,7 +41,7 @@ quarkus:
   http:
     port: ${HTTP_PORT:8080}
     ssl-port: ${HTTPS_PORT:8443}
-    redirect-insecure-requests: true
+    insecure-requests: redirect
     ssl:
       certificate:
         # Relative to the working directory where the app is started
