@@ -93,18 +93,21 @@ jobs:
 
       - name: Prepare Release Bundle
         run: |
-          cp artifacts/backend/* backend/target/
           mkdir -p release-dist/keys release-dist/certs
-          cp backend/target/*-runner.jar release-dist/resonant-backend.jar
-          # Use the repo's config as a template for the user
+          mkdir -p release-dist-windows/keys release-dist-windows/certs
+          cp artifacts/build-artifacts/* release-dist/
           cp backend/src/main/resources/application.yml release-dist/application.yml.example
-          # Copy the generated example keys and certs
+          cp backend/src/main/resources/application.yml release-dist-windows/application.yml.example
           cp backend/release-assets/keys/* release-dist/keys/
           cp backend/release-assets/certs/* release-dist/certs/
-          # Copy the key generation script
+          cp backend/release-assets/keys/* release-dist-windows/keys/
+          cp backend/release-assets/certs/* release-dist-windows/certs/
           cp backend/release-assets/generate-keys.sh release-dist/
-          cp backend/release-assets/generate-keys.ps1 release-dist/
-          zip -r resonant-backend-snapshot-jar.zip release-dist/
+          cp backend/release-assets/generate-keys.ps1 release-dist-windows/
+          tar -zcvf resonant-backend-snapshot.tar.gz release-dist/
+          cp artifacts/build-artifacts-windows/* release-dist-windows/
+          cp artifacts/build-artifacts/*.jar release-dist-windows/
+          zip -r resonant-backend-snapshot-jar.zip release-dist-windows/
 
       - name: Create Latest Snapshot Release
         uses: softprops/action-gh-release@v2
@@ -113,4 +116,4 @@ jobs:
           prerelease: false
           title: "Latest Snapshot Build"
           files: |
-            resonant-backend-snapshot-jar.zip
+            resonant-backend-snapshot-jar.tar.gz
