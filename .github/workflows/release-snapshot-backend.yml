@@ -89,7 +89,11 @@ jobs:
           mkdir -p backend/release-assets/keys backend/release-assets/certs
           cp backend/generate-keys.sh backend/release-assets/generate-keys.sh
           chmod +x backend/release-assets/generate-keys.sh
+          cd backend/release-assets
           bash backend/release-assets/generate-keys.sh
+          cd ../../
+
+      
 
       - name: Prepare Release Bundle
         run: |
