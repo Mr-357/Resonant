@@ -29,13 +29,18 @@ services:
       QUARKUS_DATASOURCE_PASSWORD: resonant
       QUARKUS_REDIS_HOSTS: redis://redis:6379
       QUARKUS_HTTP_CORS_ORIGINS: "*"
+      SSL_CERT_PATH: /work/certs/server.crt
+      SSL_KEY_PATH: /work/certs/server.key
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ../../backend/certs:/work/certs:ro
+      - ../../backend/keys:/work/keys:ro
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/q/openapi.json"]
+      test: ["CMD", "wget", "--no-check-certificate", "--quiet", "--tries=1", "--spider", "https://localhost:8443/q/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,17 +49,21 @@ services:
     build:
       context: ../../frontend
       dockerfile: Dockerfile
+    ports:
+      - "3443:3443" # Expose HTTPS port
     depends_on:
       - backend
+    volumes:
+      - ../../backend/certs:/etc/nginx/certs:ro
     environment:
-      VITE_API_URL: http://localhost:8080      
+      VITE_API_URL: https://backend:8443 # Frontend connects to backend via service name
 
   e2e-tests:
     image: mcr.microsoft.com/playwright:v1.58.2-jammy
     working_dir: /work
     environment:
-      - API_URL=http://backend:8080
-      - APP_URL=http://frontend:80
+      - API_URL=https://backend:8443
+      - APP_URL=https://frontend:3443  # E2E tests connect to frontend via HTTPS
       - CI=true
     volumes:
       - ../:/work

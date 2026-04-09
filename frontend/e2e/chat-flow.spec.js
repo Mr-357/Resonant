@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 // Configuration
 // eslint-disable-next-line no-undef
-const API_URL = process.env.API_URL || 'http://localhost:8080'; // Backend (Quarkus: 8080)
-// eslint-disable-next-line no-undef
-const APP_URL = process.env.APP_URL || 'http://localhost:3000'; // Frontend (Docker: 3000, Dev: 5173)
+const API_URL = process.env.API_URL || 'https://localhost:8443'; // Backend 
+// eslint-disable-next-line no-undef, no-unused-vars
+const APP_URL = process.env.APP_URL || 'https://localhost:3443'; // Frontend 
 let userRef, serverRef, channelRef, messageRef = null;
 
   // --- Helpers ---
@@ -131,8 +131,10 @@ test.describe('Resonant E2E Tests', () => {
 
     // 6. Send a New Message
     const newMessageContent = `Live browser message ${Date.now()}`;
-    await page.getByPlaceholder(/Message #/).fill(newMessageContent);
-    await page.getByRole('button', { name: 'Send' }).click();
+    const chatInput = page.getByPlaceholder(/Message #/);
+    await chatInput.fill(newMessageContent);
+    // Using Enter is more reliable than clicking a button that may have race conditions on its disabled state
+    await chatInput.press('Enter');
 
     // Verify the new message appears immediately
     const messageItem = page.locator('.message-item', { hasText: newMessageContent });
@@ -284,15 +286,18 @@ test.describe('Resonant E2E Tests', () => {
     const firstEmoji = page.locator('.emoji-picker-container button.epr-emoji').first();
     await expect(firstEmoji).toBeVisible();
     await firstEmoji.click();
+
     // Send message with emoji
-    await page.getByRole('button', { name: 'Send' }).click();
+    await page.getByPlaceholder(/Message #/).press('Enter');
+
     // Verify emoji is in the message list (checking for generic emoji presence or specific text if known)
     await expect(page.locator('.message-content').last()).not.toBeEmpty();
 
     // 4. Test Edit Message
     const initialText = `Edit me ${Date.now()}`;
-    await page.getByPlaceholder(/Message #/).fill(initialText);
-    await page.getByRole('button', { name: 'Send' }).click();
+    const editInput = page.getByPlaceholder(/Message #/);
+    await editInput.fill(initialText);
+    await editInput.press('Enter');
     // Wait for message to appear to ensure DOM is stable
     await expect(page.getByText(initialText)).toBeVisible();
     
