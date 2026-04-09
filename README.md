@@ -1,12 +1,12 @@
 # Resonant - Online messaging app
 
-A modern, privacy focused Discord-like chat platform built with Quarkus, React, PostgreSQL, and Redis.
+A modern, privacy focused Discord-like chat platform built with Quarkus and React.
 
 ## Architecture
 
 - **Backend**: Quarkus 3.x with RESTEasy Reactive, PostgreSQL ORM + Flyway migrations
 - **Frontend**: React 18 + Vite, PWA-enabled
-- **Database**: PostgreSQL (relational) OR SQLite (file-based) + Redis (pub/sub, caching)
+- **Database**: PostgreSQL (relational) OR SQLite (file-based)
 
 ## Features (MVP)
 
@@ -36,7 +36,7 @@ In the root of the project is a docker-compose file for running the app.
 docker-compose up --build
 
 # Services available at:
-# Frontend: http://localhost:3000
+# Frontend: https://localhost:3443
 # Backend: http://localhost:8080
 # PostgreSQL: localhost:5432
 # Redis: localhost:6379
@@ -48,7 +48,7 @@ docker-compose up --build
 ```bash
 cd backend
 mvn quarkus:dev
-# Backend runs on http://localhost:8080
+# Backend runs on https://localhost:8443
 # Auto-reload enabled on code changes
 ```
 
@@ -92,7 +92,7 @@ This mode uses the SQLite database for easiest deployment and no installation of
 
 <screenshot>
 
-Alternatively, deploy the frontend bundle from the releases behind LAMP/WAMP or nginx. See on-prem mode for more details. Other people can connect through a VPN such as Radmin or by exposing the frontend and backend ports to the internet.
+You can also download the PWA version and have it available locally and you can change instances as you please. Other people can connect to your backend through a VPN such as Radmin or by exposing the backend ports to the internet. You will get an SSL error when using self-signed certificates, so you and anyone else who wants to connect must import the certificate located in `certs/server.crt` into their browser or system trust store. On Google Chrome, this can be done by going to Settings>Advanced>Privacy and Security>Manage Certificates. In that page you can import the file, restart Chrome and the error should no longer appear.
 
 
 ## Local Docker Compose
@@ -101,7 +101,7 @@ This mode also enables easy deployment and all of the services locally, but has 
 
 1. Clone the project locally
 2. Run `docker-compose up -d`
-3. Try connecting to `http://localhost:3000`(link)
+3. Try connecting to `https://localhost:3443`
   
 
 ## On-prem
@@ -147,12 +147,19 @@ See Wiki(link).
 
 ## Contributing
 
-1. Create a branch: `git checkout -b feature/my-feature`
-2. Make changes
-3. Write tests for your feature and make sure they are passing. Playwright tests are really helpful for any big features
-4. Commit: `git commit -m "feat: description"` (use conventional commits if possible)
-5. Push: `git push origin feature/my-feature`
-6. Create PR for code review
+### Issues
+
+If you encounter an issue or a bug while using the app, please create a Github issue with the details of what you're experiencing. A template will be provided when you create a new issue, so follow the instructions provided.
+
+### Making Changes
+
+1. Create a fork of the project
+2. Create a branch: `git checkout -b feature/my-feature`
+3. Make changes
+4. Write tests for your feature and make sure they are passing. Playwright tests are really helpful for any big features
+5. Commit: `git commit -m "feat: description"` (use conventional commits if possible)
+6. Push: `git push origin feature/my-feature`
+7. Create PR for code review
 
 ## License
 
