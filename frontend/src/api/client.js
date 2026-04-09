@@ -3,8 +3,13 @@ import axios from 'axios'
 // Create axios instance with base URL
 // In development: uses Vite proxy to http://localhost:8080
 // In production: uses same domain as frontend
+const getBaseURL = () => {
+  if (typeof window !== 'undefined' && window.__API_URL__) return window.__API_URL__;
+  return import.meta.env.MODE === 'development' ? '/' : import.meta.env.VITE_BACKEND_URL;
+};
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.MODE === 'development' ? '/' : import.meta.env.VITE_BACKEND_URL,
+  baseURL: getBaseURL(),
   timeout: 10000,
 })
 
@@ -60,6 +65,11 @@ export const serverAPI = {
     apiClient.post(`/api/servers/${serverId}/members`, { userId }),
   removeMember: (serverId, userId) =>
     apiClient.delete(`/api/servers/${serverId}/members/${userId}`),
+  banMember: (serverId, userId, duration) =>
+    apiClient.post(`/api/servers/${serverId}/bans/${userId}`, { duration }),
+  unbanMember: (serverId, userId) =>
+    apiClient.delete(`/api/servers/${serverId}/bans/${userId}`),
+  getBannedMembers: (serverId) => apiClient.get(`/api/servers/${serverId}/bans`),
   getMembers: (serverId) => apiClient.get(`/api/servers/${serverId}/members`),
 }
 

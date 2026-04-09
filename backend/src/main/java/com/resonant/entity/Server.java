@@ -2,8 +2,6 @@ package com.resonant.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
@@ -41,6 +39,10 @@ public class Server extends PanacheEntityBase {
     @ManyToMany(mappedBy = "servers", cascade = CascadeType.ALL)
     @JsonIgnore
     public List<User> members;
+    
+    @OneToMany(mappedBy = "server", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    public List<ServerBan> bans;
 
     @PrePersist
     public void prePersist() {

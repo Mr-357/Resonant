@@ -2,13 +2,18 @@ package com.resonant.service;
 
 import com.resonant.dto.CreateServerRequest;
 import com.resonant.entity.Server;
+import com.resonant.entity.ServerBan;
 import com.resonant.entity.User;
+import com.resonant.repository.ServerBanRepository;
 import com.resonant.repository.ServerRepository;
 import com.resonant.repository.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Named;
 import jakarta.transaction.Transactional;
 import jakarta.inject.Inject;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +26,9 @@ public class ServerService {
     
     @Inject
     UserRepository userRepository;
+
+    @Inject
+    ServerBanRepository serverBanRepository;
 
     @Transactional
     public Server createServer(CreateServerRequest request, UUID userId) throws Exception {
@@ -43,7 +51,10 @@ public class ServerService {
         return server;
     }
 
-    public List<Server> getServersForUser(UUID userId) {
+    public List<Server> getServersForUser(UUID userId) { // TODO: Filter out servers where user is currently banned
+        // For now, we'll rely on the joinServer check. A more robust solution would involve
+        // modifying the findServersForUser query in ServerRepository to exclude banned servers.
+        // This is a more complex change that might involve custom HQL/JPQL.
         return serverRepository.findServersForUser(userId);
     }
 
@@ -96,10 +107,10 @@ public class ServerService {
     }
 
     @Transactional
-    public void removeMember(UUID serverId, UUID memberId, UUID requesterId) throws Exception {
+    public void kickMember(UUID serverId, UUID memberId, UUID requesterId) throws Exception {
         Server server = getServer(serverId);
 
-        if (!server.owner.id.equals(requesterId)) {
+        if (!server.owner.id.equals(requesterId)) { // Only owner can kick/ban
             throw new Exception("Only owner can remove members");
         }
 
@@ -113,9 +124,13 @@ public class ServerService {
         }
         User member = memberOpt.get();
 
-        if (!member.servers.removeIf(s -> s.id.equals(serverId))) {
-            throw new Exception("User is not a member of this server");
+        // Remove from members list if they are currently a member
+        if (server.members.removeIf(u -> u.id.equals(memberId))) {
+            // Also remove from user's servers list to keep consistency
+            member.servers.removeIf(s -> s.id.equals(serverId));
         }
+        // Implement a 1-minute ban for kicking
+        banUser(serverId, memberId, requesterId, 1);
     }
 
     @Transactional
@@ -127,6 +142,11 @@ public class ServerService {
             throw new Exception("User not found");
         }
         User user = userOpt.get();
+
+        // Check if user is currently banned
+        if (serverBanRepository.findActiveBan(serverId, userId).isPresent()) {
+            throw new Exception("You are currently banned from this server.");
+        }
 
         if (server.owner.id.equals(userId) || user.servers.stream().anyMatch(s -> s.id.equals(serverId))) {
             throw new Exception("You are already a member or owner of this server");
@@ -152,5 +172,62 @@ public class ServerService {
         if (!user.servers.removeIf(s -> s.id.equals(serverId))) {
             throw new Exception("You are not a member of this server.");
         }
+    }
+
+    @Transactional
+    public ServerBan banUser(UUID serverId, UUID userIdToBan, UUID requesterId, long banDurationMinutes) throws Exception {
+        Server server = getServer(serverId);
+        User userToBan = userRepository.findByIdOptional(userIdToBan)
+                                       .orElseThrow(() -> new Exception("User to ban not found"));
+
+        if (!server.owner.id.equals(requesterId)) {
+            throw new Exception("Only owner can ban users");
+        }
+
+        if (server.owner.id.equals(userIdToBan)) {
+            throw new Exception("Cannot ban the server owner");
+        }
+
+        // Remove from members list if they are currently a member
+        if (server.members.removeIf(u -> u.id.equals(userIdToBan))) {
+            // Also remove from user's servers list to keep consistency
+            userToBan.servers.removeIf(s -> s.id.equals(serverId));
+        }
+
+        LocalDateTime bannedUntil = banDurationMinutes == 0 ? LocalDateTime.ofEpochSecond(253402300799L, 0, ZoneOffset.UTC) : LocalDateTime.now().plusMinutes(banDurationMinutes);
+
+        Optional<ServerBan> existingBanOpt = serverBanRepository.findByServerAndUser(serverId, userIdToBan);
+        ServerBan serverBan;
+        if (existingBanOpt.isPresent()) {
+            serverBan = existingBanOpt.get();
+            serverBan.bannedUntil = bannedUntil;
+        } else {
+            serverBan = new ServerBan();
+            serverBan.server = server;
+            serverBan.user = userToBan;
+            serverBan.bannedUntil = bannedUntil;
+        }
+        serverBanRepository.persist(serverBan);
+        return serverBan;
+    }
+
+    @Transactional
+    public void unbanUser(UUID serverId, UUID userIdToUnban, UUID requesterId) throws Exception {
+        Server server = getServer(serverId);
+
+        if (!server.owner.id.equals(requesterId)) {
+            throw new Exception("Only owner can unban users");
+        }
+
+        Optional<ServerBan> serverBanOpt = serverBanRepository.findByServerAndUser(serverId, userIdToUnban);
+        if (serverBanOpt.isEmpty()) {
+            throw new Exception("User is not currently banned from this server.");
+        }
+        serverBanRepository.delete(serverBanOpt.get());
+    }
+
+    public List<ServerBan> getActiveBansForServer(UUID serverId) throws Exception {
+        getServer(serverId); // Ensure server exists
+        return serverBanRepository.findActiveBansByServer(serverId);
     }
 }

@@ -6,6 +6,7 @@ const API_URL = process.env.API_URL || 'https://localhost:8443'; // Backend
 // eslint-disable-next-line no-undef, no-unused-vars
 const APP_URL = process.env.APP_URL || 'https://localhost:3443'; // Frontend 
 let userRef, serverRef, channelRef, messageRef = null;
+let serversToCleanup = [];
 
   // --- Helpers ---
 function generateUserData(prefix = 'user') {
@@ -21,6 +22,7 @@ async function loginUser(page, username, password) {
   await page.getByRole('textbox', { name: 'Username' }).fill(username);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Login' }).click();
+  await page.waitForURL(/\/$/); // Ensure we've navigated to the dashboard
 }
 
 // We use this to populate the DB before specific tests
@@ -58,7 +60,7 @@ async function seedChatEnvironment(request) {
   });
   expect(msgResponse.ok()).toBeTruthy();
 
-  return { user, server, channel, messageData };
+  return { user, server, channel, messageData, token };
 }
 
 test.describe('Resonant E2E Tests', () => {
@@ -69,6 +71,15 @@ test.describe('Resonant E2E Tests', () => {
     await page.addInitScript((url) => {
       window.__API_URL__ = url;
     }, API_URL);
+  });
+
+  test.afterEach(async ({ request }) => {
+    for (const { id, token } of serversToCleanup) {
+      await request.delete(`${API_URL}/api/servers/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => {});
+    }
+    serversToCleanup = [];
   });
 
   test.beforeAll(async ({ request }) => {
@@ -186,7 +197,8 @@ test.describe('Resonant E2E Tests', () => {
 
   test('User can leave a joined server', async ({ page, request }) => {
     // 1. Setup: Create User A and Server A (target)
-    const { server: targetServer } = await seedChatEnvironment(request);
+    const { server: targetServer, token: ownerToken } = await seedChatEnvironment(request);
+    serversToCleanup.push({ id: targetServer.id, token: ownerToken });
 
     // 2. Setup: Create User B
     const userB = generateUserData('leaver');
@@ -221,7 +233,8 @@ test.describe('Resonant E2E Tests', () => {
 
   test('Users can exchange messages in real-time (WebSocket)', async ({ browser, request }) => {
     // 1. Setup: User A creates environment (Server & Channel)
-    const { user: userA, server, channel } = await seedChatEnvironment(request);
+    const { user: userA, server, channel, token: ownerToken } = await seedChatEnvironment(request);
+    serversToCleanup.push({ id: server.id, token: ownerToken });
 
     // 2. Setup: Create User B
     const userB = generateUserData('realtime');
@@ -270,7 +283,8 @@ test.describe('Resonant E2E Tests', () => {
   });
 
   test('User can manage messages (edit, delete, emoji)', async ({ page, request }) => {
-    const { user, server, channel } = await seedChatEnvironment(request);
+    const { user, server, channel, token: ownerToken } = await seedChatEnvironment(request);
+    serversToCleanup.push({ id: server.id, token: ownerToken });
 
     await loginUser(page, user.username, user.password);
 
@@ -321,7 +335,8 @@ test.describe('Resonant E2E Tests', () => {
 
    test('Server owner can manage server settings (rename, kick, delete)', async ({ page, request }) => {
     // 1. Setup: Owner, Member, Server
-    const { user: owner, server } = await seedChatEnvironment(request);
+    const { user: owner, server, token: ownerToken } = await seedChatEnvironment(request);
+    serversToCleanup.push({ id: server.id, token: ownerToken });
     
     // Create member and join
     const member = generateUserData('member');
@@ -363,29 +378,36 @@ test.describe('Resonant E2E Tests', () => {
     // Wait for members to load to ensure there is someone to kick
     await expect(page.getByText('Loading members...')).not.toBeVisible();
 
-    // Setup dialog handler for kick confirmation
-    page.once('dialog', dialog => dialog.accept());
-    
     // Find the member row and kick button
     const memberRow = page.locator('div', { hasText: member.username }).last(); 
     await expect(memberRow).toBeVisible();
     await memberRow.getByRole('button', { name: 'Kick' }).click();
-    
-    // Verify member gone from list
-    await expect(page.getByText(member.username)).not.toBeVisible();
 
-    // 7. Delete Server
-    // Setup dialog handler for delete confirmation
-    page.once('dialog', dialog => dialog.accept());
+    // Confirm in custom modal
+    await page.getByRole('button', { name: 'Confirm' }).click();
     
-    await page.getByRole('button', { name: 'Delete Server' }).click();
+    // Verify member is gone from the MEMBERS section
+    const membersSection = page.getByLabel('members');
+    await expect(membersSection.getByText(member.username)).not.toBeVisible();
+
+    // Verify member now appears in BANNED USERS section (since kick applies a 1m ban)
+    const bannedSection = page.getByLabel('banned-users');
+    await expect(bannedSection.getByText(member.username)).toBeVisible();
+
+    // 7. Delete Server - Trigger the confirmation modal from Settings
+    await page.getByRole('button', { name: 'Delete Server' }).first().click();
+
+    // Confirm in the specific confirmation modal to avoid ambiguity
+    const confirmModal = page.locator('.modal-content').filter({ hasText: 'Confirm Server Deletion' });
+    await confirmModal.getByRole('button', { name: 'Delete Server' }).click();
     
     // Verify server gone
     await expect(serverButton).not.toBeVisible();
   });
 
   test('Server owner can manage channels (rename, delete)', async ({ page, request }) => {
-    const { user, server, channel } = await seedChatEnvironment(request);
+    const { user, server, channel, token: ownerToken } = await seedChatEnvironment(request);
+    serversToCleanup.push({ id: server.id, token: ownerToken });
 
     await loginUser(page, user.username, user.password);
 
@@ -417,7 +439,8 @@ test.describe('Resonant E2E Tests', () => {
 
   test('Server owner can delete other users messages', async ({ page, request }) => {
     // Setup: Owner, Member, Server, Channel
-    const { user: owner, server, channel } = await seedChatEnvironment(request);
+    const { user: owner, server, channel, token: ownerToken } = await seedChatEnvironment(request);
+    serversToCleanup.push({ id: server.id, token: ownerToken });
     
     // Create member
     const member = generateUserData('poster');
@@ -454,5 +477,81 @@ test.describe('Resonant E2E Tests', () => {
     await page.getByRole('button', { name: 'Delete' }).click();
     // Verify gone
     await expect(messageItem).not.toBeVisible();
+  });
+
+  test('Server owner can ban a user and they cannot rejoin', async ({ page, request }) => {
+    // 1. Setup: Owner, Member, Server
+    const { user: owner, server, token: ownerToken } = await seedChatEnvironment(request);
+    serversToCleanup.push({ id: server.id, token: ownerToken });
+    const memberData = generateUserData('to_be_banned');
+    const regRes = await request.post(`${API_URL}/api/auth/register`, { data: memberData });
+    const { token: memberToken } = await regRes.json();
+    
+    await request.post(`${API_URL}/api/servers/${server.id}/join`, {
+      headers: { Authorization: `Bearer ${memberToken}` }
+    });
+
+    // 2. Owner bans Member via UI
+    await loginUser(page, owner.username, owner.password);
+    const serverButton = page.getByRole('button', { name: server.name.charAt(0), exact: true });
+    await serverButton.click({ button: 'right' });
+    
+    await expect(page.getByText('Loading members...')).not.toBeVisible();
+    const memberRow = page.locator('div', { hasText: memberData.username }).last();
+    
+    // Set duration to 0 (Permanent)
+    await memberRow.locator('input[type="number"]').fill('0');
+    
+    await memberRow.getByRole('button', { name: 'Ban' }).click();
+
+    // Confirm in custom modal
+    await page.getByRole('button', { name: 'Confirm' }).click();
+
+    // 3. Verify member appears in Banned list
+    await expect(page.getByText('BANNED USERS').locator('..').getByText(memberData.username)).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    // 4. Member tries to rejoin
+    const memberContext = await page.context().browser().newContext({ ignoreHTTPSErrors: true });
+    await memberContext.addInitScript((url) => { window.__API_URL__ = url; }, API_URL);
+    const memberPage = await memberContext.newPage();
+    await loginUser(memberPage, memberData.username, memberData.password);
+    
+    // Verify the server is NOT in the member's sidebar/server list after being banned
+    await expect(memberPage.getByRole('button', { name: server.name.charAt(0), exact: true })).not.toBeVisible();
+
+    await memberPage.getByTitle('Explore Servers').click();
+    const serverRow = memberPage.locator('.server-discovery-list > div').filter({ has: memberPage.getByText(server.name, { exact: true }) }).first();
+    await serverRow.getByRole('button', { name: 'Join' }).click();
+
+
+    // Cleanup
+    await memberContext.close();
+  });
+
+  test('Kicking a member prevents them from rejoining for 1 minute', async ({ page, request }) => {
+    const { user: owner, server, token: ownerToken } = await seedChatEnvironment(request);
+    serversToCleanup.push({ id: server.id, token: ownerToken });
+    const memberData = generateUserData('kicked_user');
+    await request.post(`${API_URL}/api/auth/register`, { data: memberData });
+
+    // Owner kicks via UI
+    await loginUser(page, owner.username, owner.password);
+    const serverButton = page.getByRole('button', { name: server.name.charAt(0), exact: true });
+    
+    // Using API to join first
+    const memberLogin = await request.post(`${API_URL}/api/auth/login`, { data: { username: memberData.username, password: memberData.password } });
+    const { token: mToken, userId: mId } = await memberLogin.json();
+    await request.post(`${API_URL}/api/servers/${server.id}/join`, { headers: { Authorization: `Bearer ${mToken}` } });
+
+    await serverButton.click({ button: 'right' });
+    await expect(page.getByText('Loading members...')).not.toBeVisible();
+    await page.locator('div', { hasText: memberData.username }).last().getByRole('button', { name: 'Kick' }).click();
+
+    // Confirm in custom modal
+    await page.getByRole('button', { name: 'Confirm' }).click();
+
+    // Verify ban exists in the UI list
+    await expect(page.getByText('BANNED USERS').locator('..').getByText(memberData.username)).toBeVisible();
   });
 });

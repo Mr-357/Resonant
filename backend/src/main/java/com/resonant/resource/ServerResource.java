@@ -1,6 +1,7 @@
 package com.resonant.resource;
 
 import com.resonant.dto.CreateServerRequest;
+import com.resonant.entity.ServerBan;
 import com.resonant.entity.Server;
 import com.resonant.entity.User;
 import com.resonant.service.ServerService;
@@ -12,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -22,7 +24,8 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
+
 import java.util.UUID;
 
 @Path("/api/servers")
@@ -161,18 +164,18 @@ public class ServerResource {
 
     @DELETE
     @Path("/{serverId}/members/{userId}")
-    @Operation(summary = "Remove member", description = "Remove a user from the server (owner only)")
+    @Operation(summary = "Kick member", description = "Kick a user from the server (owner only). This applies a 1-minute ban.")
     @APIResponses(value = {
-        @APIResponse(responseCode = "204", description = "Member removed successfully"),
-        @APIResponse(responseCode = "400", description = "Error removing member")
+        @APIResponse(responseCode = "200", description = "Member kicked and temporarily banned successfully"),
+        @APIResponse(responseCode = "400", description = "Error kicking member")
     })
     public Response removeMember(
         @PathParam("serverId") UUID serverId,
         @PathParam("userId") UUID userId) {
         try {
             UUID requesterId = UUID.fromString(securityContext.getUserPrincipal().getName());
-            serverService.removeMember(serverId, userId, requesterId);
-            return Response.noContent().build();
+            serverService.kickMember(serverId, userId, requesterId); // Now kicks and bans for 1 minute
+            return Response.ok().build();
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponse(e.getMessage()))
@@ -228,6 +231,83 @@ public class ServerResource {
         }
     }
 
+    @POST
+    @Path("/{serverId}/bans/{userId}")
+    @Operation(summary = "Ban a user from the server", description = "Ban a user from the server for a specified duration (owner only). Duration 0 means permanent.")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "200", description = "User banned successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServerBanDTO.class))),
+        @APIResponse(responseCode = "400", description = "Invalid request or permissions")
+    })
+    public Response banUser(
+        @PathParam("serverId") UUID serverId,
+        @PathParam("userId") UUID userId,
+        @QueryParam("durationMinutes") @DefaultValue("0") long durationMinutes) { // 0 for permanent
+        try {
+            UUID requesterId = UUID.fromString(securityContext.getUserPrincipal().getName());
+            ServerBan serverBan = serverService.banUser(serverId, userId, requesterId, durationMinutes);
+            return Response.ok(new ServerBanDTO(serverBan.id, serverBan.user.id, serverBan.user.username, serverBan.bannedUntil)).build();
+        } catch (Exception e) {
+           
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
+    @DELETE
+    @Path("/{serverId}/bans/{userId}")
+    @Operation(summary = "Unban a user from the server", description = "Unban a user from the server (owner only).")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "204", description = "User unbanned successfully"),
+        @APIResponse(responseCode = "400", description = "Invalid request or permissions")
+    })
+    public Response unbanUser(
+        @PathParam("serverId") UUID serverId,
+        @PathParam("userId") UUID userId) {
+        try {
+            UUID requesterId = UUID.fromString(securityContext.getUserPrincipal().getName());
+            serverService.unbanUser(serverId, userId, requesterId);
+            return Response.noContent().build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
+    @GET
+    @Path("/{serverId}/bans")
+    @Operation(summary = "Get banned users for a server", description = "Retrieve a list of currently banned users for a server (owner only).")
+    @APIResponses(value = {
+        @APIResponse(responseCode = "403", description = "Forbidden - Only owner can view banned users"),
+        @APIResponse(responseCode = "200", description = "List of banned users",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServerBanDTO.class, type = SchemaType.ARRAY))),
+        @APIResponse(responseCode = "400", description = "Invalid request or permissions")
+    })
+    public Response getBannedUsers(@PathParam("serverId") UUID serverId) {
+        try {
+            UUID requesterId = UUID.fromString(securityContext.getUserPrincipal().getName());
+            Server server = serverService.getServer(serverId); // Get server to check owner
+
+            if (!server.owner.id.equals(requesterId)) {
+                return Response.status(Response.Status.FORBIDDEN)
+                    .entity(new ErrorResponse("Only the server owner can view banned users."))
+                    .build();
+            }
+
+            List<ServerBan> bans = serverService.getActiveBansForServer(serverId);
+            List<ServerBanDTO> bannedUsers = bans.stream()
+                .map(ban -> new ServerBanDTO(ban.id, ban.user.id, ban.user.username, ban.bannedUntil))
+                .collect(Collectors.toList());
+            return Response.ok(bannedUsers).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
     static class ErrorResponse {
         public String error;
         public ErrorResponse(String error) {
@@ -241,6 +321,16 @@ public class ServerResource {
         public MemberDTO(UUID id, String username) {
             this.id = id;
             this.username = username;
+        }
+    }
+
+    public static class ServerBanDTO {
+        public UUID id;
+        public UUID userId;
+        public String username;
+        public LocalDateTime bannedUntil;
+        public ServerBanDTO(UUID id, UUID userId, String username, LocalDateTime bannedUntil) {
+            this.id = id; this.userId = userId; this.username = username; this.bannedUntil = bannedUntil;
         }
     }
 }

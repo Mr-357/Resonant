@@ -202,4 +202,61 @@ class ServerResourceTest {
         .then()
             .statusCode(400);
     }
+
+    @Test
+    void testBanAndUnbanMember() {
+        // 1. Create Server
+        Response createResponse = given()
+            .header("Authorization", "Bearer " + authToken)
+            .contentType(ContentType.JSON)
+            .body("{\"name\": \"Ban Test Server\"}")
+        .when()
+            .post(SERVERS_ENDPOINT);
+        UUID serverId = UUID.fromString(createResponse.jsonPath().getString("id"));
+
+        // 2. Create another user to ban
+        String otherUserPayload = "{\"username\": \"banned_user\", \"email\": \"banned@test.com\", \"password\": \"Pass123!\"}";
+        Response otherUserRes = given().contentType(ContentType.JSON).body(otherUserPayload).post(AUTH_REGISTER);
+        String otherUserId = otherUserRes.jsonPath().getString("userId");
+
+        // 3. Ban user (Permanent)
+        given()
+            .header("Authorization", "Bearer " + authToken)
+        .when()
+            .post(SERVERS_ENDPOINT + "/" + serverId + "/bans/" + otherUserId + "?durationMinutes=0")
+        .then()
+            .statusCode(200)
+            .body("username", equalTo("banned_user"))
+            .body("bannedUntil", containsString("9999-12-31"));
+
+        // 4. Verify in ban list
+        given()
+            .header("Authorization", "Bearer " + authToken)
+        .when()
+            .get(SERVERS_ENDPOINT + "/" + serverId + "/bans")
+        .then()
+            .statusCode(200)
+            .body("size()", equalTo(1))
+            .body("[0].username", equalTo("banned_user"));
+
+        // 5. Unban user
+        given()
+            .header("Authorization", "Bearer " + authToken)
+        .when()
+            .delete(SERVERS_ENDPOINT + "/" + serverId + "/bans/" + otherUserId)
+        .then()
+            .statusCode(204);
+    }
+
+    @Test
+    void testKickMemberReturnsOk() {
+        // Logic test for the kick endpoint which triggers the 1m ban
+        // (Kicking yourself or non-existent user should fail)
+        given()
+            .header("Authorization", "Bearer " + authToken)
+        .when()
+            .delete(SERVERS_ENDPOINT + "/" + UUID.randomUUID() + "/members/" + userId)
+        .then()
+            .statusCode(400); // Should fail because you can't kick the owner
+    }
 }

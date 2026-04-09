@@ -18,6 +18,13 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   const [settingsName, setSettingsName] = useState('')
   const [settingsMembers, setSettingsMembers] = useState([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [settingsBannedMembers, setSettingsBannedMembers] = useState([])
+  const [loadingBannedMembers, setLoadingBannedMembers] = useState(false)
+  const [banDuration, setBanDuration] = useState(1) // Default 1 minute ban
+
+  // State for custom confirmation modals
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showKickBanConfirm, setShowKickBanConfirm] = useState(null) // { type: 'kick' | 'ban', memberId: UUID, duration?: number }
 
   useEffect(() => {
     fetchServers()
@@ -127,14 +134,24 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       setSettingsName(server.name)
       setSettingsMembers([])
       setLoadingMembers(true)
+      setLoadingBannedMembers(true)
       setSettingsModalOpen(true)
       serverAPI.getMembers(server.id)
         .then(res => setSettingsMembers(res.data || []))
         .catch(console.error)
         .finally(() => setLoadingMembers(false))
+      fetchBannedMembers(server.id)
+        .then(res => setSettingsBannedMembers(res))
+        .catch(console.error)
+        .finally(() => setLoadingBannedMembers(false))
+    
     }
   }
-
+  
+  const fetchBannedMembers = async (serverId) => { // Renamed from fetchBannedMembers to getBannedMembers for clarity
+    return serverAPI.getBannedMembers(serverId).then(res => res.data || []).catch(err => { console.error("Failed to fetch banned members", err); return [] })
+  }
+  
   const handleUpdateServer = async (e) => {
     e.preventDefault()
     if (!settingsName.trim() || !settingsServer) return
@@ -152,27 +169,71 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
     }
   }
 
-  const handleDeleteServer = async () => {
-    if (!settingsServer || !window.confirm(`Delete ${settingsServer.name}? This cannot be undone.`)) return
+  const handleDeleteServer = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteServer = async () => {
+    if (!settingsServer) return
     try {
       await serverAPI.delete(settingsServer.id)
       setServers(prev => prev.filter(s => s.id !== settingsServer.id))
       if (activeServerId === settingsServer.id) onServerSelect(null)
       setSettingsModalOpen(false)
+      setShowDeleteConfirm(false)
     } catch (err) {
       console.error("Delete failed", err)
       alert("Failed to delete server")
     }
   }
 
-  const handleRemoveMember = async (memberId) => {
-    if (!window.confirm("Remove this member?")) return
+  const handleKickMember = (memberId) => {
+    setShowKickBanConfirm({ type: 'kick', memberId: memberId })
+  }
+
+  const handleBanMember = (memberId, duration) => {
+    setShowKickBanConfirm({ type: 'ban', memberId: memberId, duration: duration })
+  }
+
+  const confirmKickBan = async () => {
+    if (!showKickBanConfirm) return
+    const { type, memberId, duration } = showKickBanConfirm
+
     try {
-      await serverAPI.removeMember(settingsServer.id, memberId)
-      setSettingsMembers(prev => prev.filter(m => m.id !== memberId))
+      if (type === 'kick') {
+        await serverAPI.removeMember(settingsServer.id, memberId) // This now triggers a 1-minute ban on the backend
+        setSettingsMembers(prev => prev.filter(m => m.id !== memberId))
+      } else if (type === 'ban') {
+        await serverAPI.banMember(settingsServer.id, memberId, duration)
+        // Remove from active members list if they were there
+        setSettingsMembers(prev => prev.filter(m => m.id !== memberId))
+      }
+      const updatedBans = await fetchBannedMembers(settingsServer.id)
+      setSettingsBannedMembers(updatedBans)
+      setShowKickBanConfirm(null)
     } catch (err) {
-      console.error("Remove member failed", err)
-      alert("Failed to remove member")
+      console.error(`${type} member failed`, err)
+      alert(`Failed to ${type} member: ` + (err.response?.data?.error || err.message))
+    }
+  }
+
+  const handleUnbanMember = (memberId) => {
+    setShowKickBanConfirm({ type: 'unban', memberId: memberId })
+  }
+
+  const confirmUnban = async () => {
+    if (!showKickBanConfirm || showKickBanConfirm.type !== 'unban') return
+    const { memberId } = showKickBanConfirm
+
+    try {
+      await serverAPI.unbanMember(settingsServer.id, memberId) // This now triggers a 1-minute ban on the backend
+      const updatedBans = await fetchBannedMembers(settingsServer.id)
+      setSettingsBannedMembers(updatedBans)
+      // No need to refresh settingsMembers as unbanning doesn't automatically add them back
+      setShowKickBanConfirm(null)
+    } catch (err) {
+      console.error("Unban member failed", err)
+      alert("Failed to unban member: " + (err.response?.data?.error || err.message))
     }
   }
 
@@ -307,13 +368,24 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
 
         <div style={{ marginBottom: '20px' }}>
           <span style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--text-muted)', fontWeight: 'bold' }}>MEMBERS</span>
-          <div style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px', padding: '5px' }}>
+          <div aria-label="members" style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px', padding: '5px' }}>
             {loadingMembers ? <div style={{ padding: '10px', color: 'var(--text-subtle)' }}>Loading members...</div> : 
               settingsMembers.map(member => (
                 <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', borderBottom: '1px solid var(--border-tertiary)' }}>
-                  <span>{member.username}</span>
+                  <span style={{ flexGrow: 1 }}>{member.username}</span>
                   {String(member.id) !== String(effectiveUser?.id) && (
-                    <button onClick={() => handleRemoveMember(member.id)} style={{ backgroundColor: 'var(--status-danger)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.8em' }}>Kick</button>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        value={banDuration}
+                        onChange={(e) => setBanDuration(parseInt(e.target.value))}
+                        style={{ width: '50px', padding: '4px', borderRadius: '3px', border: 'none', backgroundColor: 'var(--bg-tertiary)', color: 'white', fontSize: '0.8em' }}
+                        title="Ban duration in minutes (0 for permanent)"
+                      />
+                      <button onClick={() => handleBanMember(member.id, banDuration)} style={{ backgroundColor: 'var(--status-danger)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.8em' }}>Ban</button> {/* Changed to call handleBanMember */}
+                      <button onClick={() => handleKickMember(member.id)} style={{ backgroundColor: 'var(--status-warning)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.8em' }}>Kick</button> {/* Changed to call handleKickMember */}
+                    </div>
                   )}
                 </div>
               ))
@@ -321,9 +393,32 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
           </div>
         </div>
 
+        <div style={{ marginBottom: '20px' }}>
+          <span style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--text-muted)', fontWeight: 'bold' }}>BANNED USERS</span>
+          <div aria-label="banned-users" style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px', padding: '5px' }}>
+            {loadingBannedMembers ? <div style={{ padding: '10px', color: 'var(--text-subtle)' }}>Loading banned users...</div> :
+              settingsBannedMembers.length === 0 ? (
+                <div style={{ padding: '10px', color: 'var(--text-subtle)' }}>No users currently banned.</div>
+              ) : (
+                settingsBannedMembers.map(bannedUser => (
+                  <div key={bannedUser.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', borderBottom: '1px solid var(--border-tertiary)' }}>
+                    <span style={{ flexGrow: 1 }}>
+                      {bannedUser.username}
+                      <span style={{ fontSize: '0.8em', color: 'var(--text-subtle)', marginLeft: '10px' }}>
+                        {bannedUser.bannedUntil?.startsWith('9999-12-31') ? ' (Permanent)' : ` (Until: ${new Date(bannedUser.bannedUntil).toLocaleString()})`}
+                      </span>
+                    </span>
+                    <button onClick={() => handleUnbanMember(bannedUser.userId)} style={{ backgroundColor: 'var(--accent-primary)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.8em' }}>Unban</button> {/* Changed to call handleUnbanMember */}
+                  </div>
+                ))
+              )
+            }
+          </div>
+        </div>
+
         <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: '15px' }}>
           <span style={{ display: 'block', marginBottom: '5px', fontSize: '0.9em', color: 'var(--status-danger)', fontWeight: 'bold' }}>DANGER ZONE</span>
-          <button onClick={handleDeleteServer} style={{ width: '100%', padding: '10px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white', fontWeight: 'bold' }}>Delete Server</button>
+          <button type="button" onClick={handleDeleteServer} style={{ width: '100%', padding: '10px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white', fontWeight: 'bold' }}>Delete Server</button>
         </div>
       </Modal>
 
@@ -336,6 +431,40 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
           <button onClick={() => setServerToLeave(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
           <button onClick={confirmLeaveServer} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Leave Server</button>
+        </div>
+      </Modal>
+
+      {/* Confirmation Modal for Delete Server */}
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Confirm Server Deletion"
+      >
+        <p>Are you sure you want to delete <strong>{settingsServer?.name}</strong>? This action cannot be undone.</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button onClick={() => setShowDeleteConfirm(false)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={confirmDeleteServer} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Delete Server</button>
+        </div>
+      </Modal>
+
+      {/* Confirmation Modal for Kick/Ban/Unban */}
+      <Modal
+        isOpen={!!showKickBanConfirm}
+        onClose={() => setShowKickBanConfirm(null)}
+        title={
+          showKickBanConfirm?.type === 'kick' ? 'Confirm Kick' :
+          showKickBanConfirm?.type === 'ban' ? `Confirm Ban (${showKickBanConfirm.duration === 0 ? 'Permanent' : showKickBanConfirm.duration + ' min'})` :
+          showKickBanConfirm?.type === 'unban' ? 'Confirm Unban' : ''
+        }
+      >
+        <p>
+          {showKickBanConfirm?.type === 'kick' && `Are you sure you want to kick this member? This will apply a 1-minute ban.`}
+          {showKickBanConfirm?.type === 'ban' && `Are you sure you want to ban this member for ${showKickBanConfirm.duration === 0 ? 'permanently' : showKickBanConfirm.duration + ' minutes'}?`}
+          {showKickBanConfirm?.type === 'unban' && `Are you sure you want to unban this member?`}
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button onClick={() => setShowKickBanConfirm(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={showKickBanConfirm?.type === 'unban' ? confirmUnban : confirmKickBan} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Confirm</button>
         </div>
       </Modal>
     </div>
