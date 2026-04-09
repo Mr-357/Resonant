@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build and Release Latest Snapshot Linux
+    name: Build Latest Snapshot Linux
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -92,12 +92,13 @@ jobs:
         with:
           name: build-artifacts-frontend
           path: |
-            frontend/build
+            frontend/dist/**/*
 
 
       
 
   release:
+    name: Create Latest Snapshot Release
     needs: [build, build-windows, build-frontend]
     runs-on: ubuntu-latest
     permissions:
