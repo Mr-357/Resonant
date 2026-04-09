@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @QuarkusTestResource(TestContainersLifecycleManager.class)
 class MessageResourceTest {
 
-    private static final String BASE_URL = "http://localhost:8081/api";
+    private static final String BASE_URL = "https://localhost:8444/api";
     private static final String AUTH_REGISTER = BASE_URL + "/auth/register";
     private static final String SERVERS_ENDPOINT = BASE_URL + "/servers";
 

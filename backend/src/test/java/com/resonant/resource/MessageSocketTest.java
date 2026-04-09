@@ -5,6 +5,7 @@ import com.resonant.dto.RegisterRequest;
 import com.resonant.entity.Channel;
 import com.resonant.entity.Server;
 import com.resonant.entity.User;
+import com.resonant.repository.MessageRepository;
 import com.resonant.repository.ChannelRepository;
 import com.resonant.repository.ServerRepository;
 import com.resonant.repository.UserRepository;
@@ -38,6 +39,9 @@ public class MessageSocketTest {
     @Inject
     ChannelRepository channelRepository;
 
+    @Inject
+    MessageRepository messageRepository;
+
     @TestHTTPResource("/chat")
     URI chatUri;
 
@@ -48,6 +52,8 @@ public class MessageSocketTest {
     @Transactional
     public void setup() throws Exception {
         // Clear data to ensure clean state
+        // Delete in reverse order of foreign key dependencies
+        messageRepository.deleteAll();
         channelRepository.deleteAll();
         serverRepository.deleteAll();
         userRepository.deleteAll();

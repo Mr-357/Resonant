@@ -17,7 +17,7 @@ quarkus:
     dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     migrate-at-start: true
-    locations: db/migration
+    locations: db/migration/${quarkus.datasource.db-kind}
   log:
     level: WARN
   redis:

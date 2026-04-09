@@ -4,34 +4,58 @@
 "%sqlite":
   quarkus:
     datasource:
+      devservices:
+        enabled: false  # Stop Dev Services from recreating the DB
       db-kind: sqlite
       jdbc:
-        url: jdbc:sqlite:./resonant.sqlite
-        min-size: 1
+        url: jdbc:sqlite:resonant.sqlite
     hibernate-orm:
-      database:
-        generation: update
+      schema-management:
+        strategy: none
       mapping:
         uuid:
           preferred-jdbc-type: VARCHAR
+
+"%postgresql":
+  quarkus:
+    datasource:
+      db-kind: postgresql
+      username: ${DB_USER:resonant}
+      password: ${DB_PASSWORD:resonant}
+      jdbc:
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/resonant}
+    hibernate-orm:
+      schema-management:
+        strategy: none
+
+"%dev":
+  quarkus:
+    datasource:
+      db-kind: postgresql
+      username: ${DB_USER:resonant}
+      password: ${DB_PASSWORD:resonant}
+      jdbc:
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/resonant}
+    hibernate-orm:
+      schema-management:
+        strategy: none
+
+"%prod":
+  quarkus:
+    datasource:
+      db-kind: postgresql
+      username: ${DB_USER:resonant}
+      password: ${DB_PASSWORD:resonant}
+      jdbc:
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/resonant}
+    hibernate-orm:
+      schema-management:
+        strategy: none
 
 quarkus:
   application:
     name: resonant-backend
     version: 1.0.0
-
-
-  datasource:
-    db-kind: ${DB_KIND:postgresql}
-    username: ${DB_USER:resonant}
-    password: ${DB_PASSWORD:resonant}
-    jdbc:
-      url: ${DB_URL:jdbc:postgresql://localhost:5432/resonant}
-  hibernate-orm:
-    database:
-      generation: none
-    # Hibernate can usually autodetect the dialect based on the DB kind
-
   redis:
     hosts: ${REDIS_HOSTS:redis://localhost:6379}
   flyway:
@@ -51,9 +75,9 @@ quarkus:
       enabled: true
       origins: "/.*/"
       methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD"
-      headers: "origin,content-type,accept,authorization,x-requested-with"
       access-control-allow-credentials: true
       access-control-max-age: 24H
+
 mp:
   jwt:
     verify:

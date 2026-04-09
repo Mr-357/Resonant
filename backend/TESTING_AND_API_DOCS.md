@@ -15,7 +15,7 @@ Once the application is running, you can access the interactive API documentatio
 
 ### Prerequisites
 
-The integration tests use **Testcontainers** to automatically manage PostgreSQL and Redis containers during test execution. This means:
+The integration tests use **Testcontainers** to automatically manage dependency containers during test execution. This means:
 
 1. **Docker Desktop** must be installed and running
 2. No manual database setup is needed
@@ -93,7 +93,7 @@ The project includes comprehensive integration tests for all API endpoints:
 
 Each test class:
 1. Uses `@QuarkusTestResource(TestContainersLifecycleManager.class)` to manage containers
-2. Automatically creates PostgreSQL and Redis instances
+2. Automatically creates database instances
 3. Seeds test data (users, servers, channels) in the `@BeforeEach` setup
 4. Executes REST calls using REST Assured
 5. Verifies responses using Hamcrest matchers
