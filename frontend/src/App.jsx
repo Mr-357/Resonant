@@ -16,6 +16,7 @@ function App() {
   const [retryTimer, setRetryTimer] = useState(0)
   const [customBackendUrl, setCustomBackendUrl] = useState('')
   const [targetApiUrl, setTargetApiUrl] = useState(window.__API_URL__)
+  const [isSSLError, setIsSSLError] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -100,12 +101,16 @@ function App() {
         if (isMounted) {
           setIsLoading(false)
           setBackendError(null)
+          setIsSSLError(false)
         }
       } catch (err) {
+        const potentialSSL = !err.response && targetApiUrl?.startsWith('https')
+        if (potentialSSL && isMounted) setIsSSLError(true)
         handleRetry(err, delay)
       }
     }
 
+    setIsSSLError(false)
     checkBackend()
     
     return () => {
@@ -125,6 +130,7 @@ function App() {
       setTargetApiUrl(url)
       setRetryCount(0)
       setRetryTimer(0)
+      setIsSSLError(false)
       setBackendError('Connecting to ' + url + '...')
       setIsLoading(true)
     }
@@ -149,34 +155,50 @@ function App() {
     setBackendError('Configure Server Connection')
     setRetryCount(0)
     setRetryTimer(0)
+    setIsSSLError(false)
   }
+
 
   if (isLoading) {
     return (
-      <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Loading />
+      <Loading>
         {backendError && (
-          <div style={{ position: 'absolute', bottom: '20%', width: '100%', textAlign: 'center', color: 'var(--status-error)', fontWeight: 'bold' }}>
-            {backendError}
-            <br></br>Retrying connection in .. {retryTimer} seconds
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <p style={{ color: 'var(--status-error)', fontWeight: 'bold', marginBottom: '10px' }}>{backendError}</p>
+            <p style={{ color: 'var(--text-primary)' }}>Retrying connection in .. {retryTimer} seconds</p>
             {(retryCount >= 1 || backendError === 'Configure Server Connection') && (
               <form onSubmit={handleCustomUrlSubmit} style={{ marginTop: '15px' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '5px' }}>Is the server hosted elsewhere?</p>
-                <input 
-                  type="text" 
-                  placeholder="http://localhost:8080" 
-                  value={customBackendUrl}
-                  onChange={(e) => setCustomBackendUrl(e.target.value)}
-                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-tertiary)', marginRight: '5px' }}
-                />
-                <button type="submit" style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', backgroundColor: 'var(--accent-primary)', color: 'white', cursor: 'pointer' }}>
-                  Connect
-                </button>
-              </form>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '5px' }}>Is the server hosted elsewhere?</p>
+                  <input 
+                    type="text" 
+                    placeholder="http://localhost:8080" 
+                    value={customBackendUrl}
+                    onChange={(e) => setCustomBackendUrl(e.target.value)}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-tertiary)', marginRight: '5px' }}
+                  />
+                  <button type="submit" style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', backgroundColor: 'var(--accent-primary)', color: 'white', cursor: 'pointer' }}>
+                    Connect
+                  </button>
+                </form>
+            )}
+            {isSSLError && (
+              <div style={{ marginTop: '25px', padding: '15px', background: 'rgba(255, 71, 87, 0.1)', borderRadius: '8px', border: '1px solid var(--status-danger)', display: 'inline-block', maxWidth: '450px', color: 'var(--text-primary)' }}>
+                <p style={{ fontSize: '0.85rem', marginBottom: '10px' }}>
+                  🛡️ <strong>SSL/Certificate Issue Detected</strong>
+                  <br />Your browser may be blocking the connection to a self-signed backend.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                 
+                    <p style={{ display: 'block', padding: '8px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderRadius: '4px', fontSize: '0.8rem' }}>
+                      Load the server's SSL certificate into your trust store to proceed if you are sure about the server's safety.
+                    </p>
+                
+                </div>
+              </div>
             )}
           </div>
         )}
-      </div>
+      </Loading>
     )
   }
 
@@ -185,9 +207,9 @@ function App() {
       <Routes>
         {isAuthenticated ? (
           <>
-            <Route path="/" element={<Dashboard currentUser={currentUser} onLogout={handleLogout} />} />
-            <Route path="/dashboard/:serverId" element={<Dashboard currentUser={currentUser} onLogout={handleLogout} />} />
-            <Route path="/dashboard/:serverId/:channelId" element={<Dashboard currentUser={currentUser} onLogout={handleLogout} />} />
+            <Route path="/" element={<Dashboard currentUser={currentUser} onLogout={handleLogout} onChangeServer={handleChangeServer} />} />
+            <Route path="/dashboard/:serverId" element={<Dashboard currentUser={currentUser} onLogout={handleLogout} onChangeServer={handleChangeServer} />} />
+            <Route path="/dashboard/:serverId/:channelId" element={<Dashboard currentUser={currentUser} onLogout={handleLogout} onChangeServer={handleChangeServer} />} />
             <Route path="*" element={<Navigate to="/" />} />
           </>
         ) : (

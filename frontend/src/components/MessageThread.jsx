@@ -212,6 +212,8 @@ export default function MessageThread({ serverId, channel, currentUser }) {
             placeholder={`Message # ${channel.name}`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            name='message-input'
+            aria-label='message-input'
           />
         </div>
         <button type="submit" disabled={!input.trim()}>Send</button>

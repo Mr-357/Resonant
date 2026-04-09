@@ -4,8 +4,7 @@ import ServerList from './ServerList'
 import ChannelList from './ChannelList'
 import MessageThread from './MessageThread'
 import './Dashboard.css'
-
-export default function Dashboard({ currentUser, onLogout }) {
+export default function Dashboard({ currentUser, onLogout, onChangeServer }) {
   const [selectedServer, setSelectedServer] = useState(null)
   const [selectedChannel, setSelectedChannel] = useState(null)
 
@@ -64,7 +63,10 @@ export default function Dashboard({ currentUser, onLogout }) {
                 </>
              ) : 'Resonant'}
           </div>
-          <button onClick={onLogout} style={{ background: 'var(--status-danger)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}>Logout</button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={onChangeServer} style={{ background: 'var(--bg-secondary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }} title="Change Backend Server">🚀</button>
+            <button onClick={onLogout} style={{ background: 'var(--status-danger)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}>Logout</button>
+          </div>
         </div>
 
         <div className="messages-panel">
@@ -81,5 +83,6 @@ export default function Dashboard({ currentUser, onLogout }) {
 
 Dashboard.propTypes = {
   currentUser: PropTypes.object,
-  onLogout: PropTypes.func.isRequired
+  onLogout: PropTypes.func.isRequired,
+  onChangeServer: PropTypes.func.isRequired
 }
