@@ -53,7 +53,6 @@ jobs:
 
       - name: Build Native Image Windows
         run: |
-          mvn -v
           mvn -B package -DskipTests -Dnative --file backend/pom.xml
 
       - name: Upload Build Artifacts
@@ -63,10 +62,41 @@ jobs:
           path: |
             backend/target/*-runner.exe
 
+
+  build-frontend:
+    name: Build Latest Snapshot Frontend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Upload Frontend Build Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-artifacts-frontend
+          path: |
+            frontend/build
+
+
       
 
   release:
-    needs: [build, build-windows]
+    needs: [build, build-windows, build-frontend]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -110,13 +140,16 @@ jobs:
           tar -zcvf resonant-backend-snapshot.tar.gz release-dist/
           cp artifacts/build-artifacts-windows/* release-dist-windows/
           zip -r resonant-backend-snapshot.zip release-dist-windows/
+          zip -r resonant-backend-snapshot-frontend.zip artifacts/build-artifacts-frontend/*
 
       - name: Create Latest Snapshot Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "experimental"
           prerelease: false
-          title: "Latest Snapshot Build"
+          name: "Latest Snapshot Build"
           files: |
             resonant-backend-snapshot.tar.gz
             resonant-backend-snapshot.zip
+            resonant-backend-snapshot-frontend.zip
+
