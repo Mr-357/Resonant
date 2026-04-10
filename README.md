@@ -154,7 +154,7 @@ Build the production static assets:
 ```bash
 cd frontend
 npm install
-echo echo "VITE_API_URL=https://<your-domain>" > .env.production
+echo "VITE_API_URL=https://<your-domain>" > .env.production
 npm run build
 # The static files will be in frontend/dist/
 ```
