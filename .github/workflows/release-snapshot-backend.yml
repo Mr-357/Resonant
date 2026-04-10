@@ -91,12 +91,6 @@ jobs:
           echo "VITE_API_URL=https://localhost:8443" > .env.production
           npm run build
 
-      - name: Upload Frontend Build Artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-artifacts-frontend
-          path: |
-            frontend/dist/**/*
 
 
       
@@ -186,6 +180,35 @@ jobs:
         url: ${{ steps.pages-deploy.outputs.page_url }}
 
       steps:
+        - name: Checkout Code
+          uses: actions/checkout@v6
+        - name: Set up Node.js
+          uses: actions/setup-node@v6
+          with:
+            node-version: '24'
+            cache: 'npm'
+            cache-dependency-path: frontend/package-lock.json
+
+  # placeholder for build arg, will be replaced with proper backend once its up
+        - name: Build Frontend
+          run: |
+            cd frontend
+            npm install
+            echo "VITE_API_URL=https://localhost:8443" > .env.production
+            sed -i "s|base: '/'|base: '/${{ github.event.repository.name }}/'|g" vite.config.js
+            npm run build
+            
+        - name: Setup Pages
+          uses: actions/configure-pages@v5
+
+        - name: Upload Frontend Build Artifacts
+          uses: actions/upload-artifact@v7
+          with:
+            name: build-artifacts-frontend
+            path: |
+              frontend/dist/**/*
+
+
         - name: Deploy to GitHub Pages
           id: pages-deploy
           uses: actions/deploy-pages@v4
