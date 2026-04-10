@@ -46,7 +46,7 @@ jobs:
         with:
           context: ./frontend
           push: true
-          tags: resonant-frontend:latest
+          tags: ghcr.io/mr-357/resonant-frontend:latest
 
 
       - name: Build and push Docker image
@@ -55,7 +55,7 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: resonant-backend:latest
+          tags: ghcr.io/mr-357/resonant-backend:latest
 
       
       # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. It increases supply chain security for people who consume the image. For more information, see [Using artifact attestations to establish provenance for builds](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
