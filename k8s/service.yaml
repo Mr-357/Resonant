@@ -7,8 +7,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 8443
+    targetPort: 8443
     protocol: TCP
   selector:
     app: resonant-backend
@@ -23,8 +23,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 80
-    targetPort: 80
+  - port: 443
+    targetPort: 443
     protocol: TCP
   selector:
     app: resonant-frontend

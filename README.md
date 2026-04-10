@@ -86,7 +86,7 @@ There are multiple ways of running the application depending on your technical a
 This mode uses the SQLite database for easiest deployment and no installation of additional dependencies. It's only recommended for demos or a small number of users. Proceed with caution. It's recommended to replace the certificates with your own, or use Let's Encrypt! 
 
 
-1. Download the assets for running the backend from the [releases] (https://github.com/Mr-357/Resonant/releases) page.
+1. Download the assets for running the backend from the [releases](https://github.com/Mr-357/Resonant/releases) page.
 2. Modify the application.yaml file based on your needs.
 3. Run the native executable from your terminal of choice:
 
@@ -274,7 +274,7 @@ This section will be moved to the wiki eventually.
 
 ## Roadmap
 
-See [Wiki](https://github.com/Mr-357/Resonant/wiki).
+See [Wiki](https://github.com/Mr-357/Resonant/wiki/Roadmap).
 
 
 ## Contributing

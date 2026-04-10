@@ -32,13 +32,15 @@ spec:
             cpu: "500m"
         livenessProbe:
           httpGet:
+            scheme: HTTPS
             path: /q/health/live
-            port: 8080
+            port: 8443
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
+            scheme: HTTPS 
             path: /q/health/ready
-            port: 8080
+            port: 8443
           initialDelaySeconds: 10
           periodSeconds: 5
