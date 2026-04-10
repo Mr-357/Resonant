@@ -1,4 +1,4 @@
-name: released
+name: Virus total Scan
 
 permissions:
   contents: read
@@ -6,7 +6,7 @@ permissions:
 on:
   release:
     types:
-      - published
+      - released
 
 jobs:
   virustotal:
