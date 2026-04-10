@@ -88,11 +88,21 @@ This mode uses the SQLite database for easiest deployment and no installation of
   - Linux: `./resonant-backend-1-runner -Dquarkus.profile=sqlite`
   - Windows: `.\resonant-backend-1-runner.exe -Dquarkus.profile=sqlite`
 
-4. Use the frontend from Github Pages (link) to connect to your local backend by changing the instance in the settings:
+4. Use the frontend from Github Pages (link) to connect to your local backend by changing the instance:
 
-<screenshot>
+- In case the demo server is down:
 
-You can also download the PWA version and have it available locally and you can change instances as you please. Other people can connect to your backend through a VPN such as Radmin or by exposing the backend ports to the internet. You will get an SSL error when using self-signed certificates, so you and anyone else who wants to connect must import the certificate located in `certs/server.crt` into their browser or system trust store. On Google Chrome, this can be done by going to Settings>Advanced>Privacy and Security>Manage Certificates. In that page you can import the file, restart Chrome and the error should no longer appear.
+!["Server not reachable"](.github/assets/backend_down.png "Server not reachable")
+
+- In case you are not logged in:
+
+!["Not logged in"](.github/assets/logged_out.png "Not logged in")
+
+- In case you are logged in:
+
+!["Logged in"](.github/assets/logged_in.png "Logged in")
+
+You can also download the PWA version and have it available locally and change instances as you please. Other people can connect to your backend through a VPN such as Radmin or by exposing the backend ports to the internet. You will get an SSL error when using self-signed certificates, so you and anyone else who wants to connect must import the certificate located in `certs/server.crt` into their browser or system trust store. On Google Chrome, this can be done by going to Settings>Advanced>Privacy and Security>Manage Certificates. In that page you can import the file, restart Chrome and the error should no longer appear.
 
 
 ## Local Docker Compose
@@ -104,11 +114,111 @@ This mode also enables easy deployment and all of the services locally, but has 
 3. Try connecting to `https://localhost:3443`
   
 
-## On-prem
+## On-premise Deployment
 
-This method requires nginx (or any other standalone web server), an installation of PostgreSQL and Redis.
+For a production-grade on-premise installation, you'll need to set up the infrastructure components manually.
 
-Download (or build) the backend binaries and frontend bundle. Configure the backend to point to your databases by modifying the application.yaml file. Put the frontend bundle into your serving directories.
+### Prerequisites
+
+- **Java 17+** (to run the backend)
+- **Node.js 18+** (to build the frontend)
+- **PostgreSQL** (Relational Database)
+- **Redis** (For rate limiting and WebSocket pub/sub)
+- **Nginx** (As a reverse proxy and static file server)
+
+### 1. Build the Application
+
+**Backend:**
+Generate the optimized Quarkus JAR:
+```bash
+cd backend
+./mvnw clean package -DskipTests
+# The output will be in backend/target/quarkus-app/
+```
+... Or you can build the native executable:
+```bash
+cd backend
+./mvnw clean package -DskipTests -Dnative
+```
+**Frontend:**
+Build the production static assets:
+```bash
+cd frontend
+npm install
+npm run build
+# The static files will be in frontend/dist/
+```
+
+### 2. Configuration
+
+Update your `backend/src/main/resources/application.yml` or set environment variables for:
+- `DB_URL`, `DB_USER`, `DB_PASSWORD`
+- `REDIS_HOSTS`
+- `SSL_CERT_PATH` and `SSL_KEY_PATH`
+- `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` paths
+
+### 3. Nginx Configuration
+
+Create an Nginx server block to serve the frontend and proxy API/WebSocket requests to the backend:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+    # Serve Frontend Static Files
+    location / {
+        root /var/www/resonant/frontend;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy Backend API & WebSockets
+    location ~ ^/(api|q|ws) {
+        proxy_pass https://localhost:8443;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+### 4. Running as a System Service
+
+To ensure the backend starts automatically on boot, create a systemd service file at `/etc/systemd/system/resonant.service`:
+
+```ini
+[Unit]
+Description=Resonant Backend
+After=network.target postgresql.service redis.service
+
+[Service]
+User=resonant
+WorkingDirectory=/opt/resonant/backend
+ExecStart=/usr/bin/java -jar target/quarkus-app/quarkus-run.jar
+# Or if you're using the native executable: target/resonant-backend-<version>-runner
+Restart=on-failure
+RestartSec=5
+
+
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start the service:
+```bash
+sudo systemctl enable resonant
+sudo systemctl start resonant
+```
 
 
 ## Kubernetes (Minikube)
