@@ -6,7 +6,9 @@ permissions:
 on:
   release:
     types:
-      - released
+      - created
+      - published
+      - edited
 
 jobs:
   virustotal:
