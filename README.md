@@ -81,7 +81,7 @@ Once the application is running, you can access the interactive API documentatio
 There are multiple ways of running the application depending on your technical ability, installed dependencies or system requirements.
 
 
-## "Standalone mode" - easiest for beginners
+### "Standalone mode" - easiest for beginners
 
 This mode uses the SQLite database for easiest deployment and no installation of additional dependencies. It's only recommended for demos or a small number of users. Proceed with caution. It's recommended to replace the certificates with your own, or use Let's Encrypt! 
 
@@ -114,7 +114,7 @@ You can also download the PWA version to have it available locally and change in
  On Google Chrome, this can be done by going to Settings>Advanced>Privacy and Security>Manage Certificates. In that page you can import the file, restart Chrome and the error should no longer appear.
 
 
-## Local Docker Compose
+### Local Docker Compose
 
 This mode also enables easy deployment and all of the services locally, but has similar drawbacks of not being easily accessed over the internet. Requires docker and docker compose installed.
 
@@ -123,12 +123,12 @@ This mode also enables easy deployment and all of the services locally, but has 
 3. Try connecting to `https://localhost:3443`
   
 
-## On-prem Deployment
+### On-prem Deployment
 
 Check the [Wiki](https://github.com/Mr-357/Resonant/wiki/On%E2%80%90prem-deployment)
 
 
-## Kubernetes (Minikube)
+### Kubernetes (Minikube)
 
 Build and push images:
 ```bash
@@ -155,15 +155,8 @@ kubectl port-forward svc/resonant-backend 8443:8443
 
 ## Troubleshooting
 
-### Vite Reconnection Errors (localhost:3000)
-If you see console errors like `[vite] connect to ws://localhost:3000/`, it means you are running the frontend in **development mode**. The Vite HMR client will poll port 3000 indefinitely for code updates. 
 
-**Solution:** For standalone or production use, ensure you run `npm run build` in the `frontend` directory and serve the resulting `dist` folder using Nginx or another web server. Do not use `npm run dev` for the "PWA" experience.
-
-### WebSocket Connection Failed
-Ensure your backend instance is reachable. If you are using self-signed certificates, you must visit the backend URL (e.g., `https://localhost:8443/q/health`) once in your browser and click "Proceed" to accept the certificate before the WebSocket can connect.
-
-This section will be moved to the wiki eventually.
+See [Wiki](https://github.com/Mr-357/Resonant/wiki/Troubleshooting)
 
 ## Roadmap
 
