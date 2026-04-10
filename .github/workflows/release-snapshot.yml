@@ -91,7 +91,12 @@ jobs:
           echo "VITE_API_URL=https://localhost:8443" > .env.production
           npm run build
 
-
+      - name: Upload Frontend Build Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-artifacts-frontend
+          path: |
+            frontend/dist/**/*
 
       
 
@@ -162,11 +167,7 @@ jobs:
             resonant-backend-snapshot-frontend.zip
 
 
-      - name: Upload static files as artifact
-        id: deployment
-        uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
-        with:
-          path: artifacts/build-artifacts-frontend/
+
     
   release-pages:
       needs: release
@@ -201,12 +202,11 @@ jobs:
         - name: Setup Pages
           uses: actions/configure-pages@v5
 
-        - name: Upload Frontend Build Artifacts
-          uses: actions/upload-artifact@v7
+        - name: Upload static files as artifact
+          id: deployment
+          uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
           with:
-            name: build-artifacts-frontend
-            path: |
-              frontend/dist/**/*
+            path: frontend/dist
 
 
         - name: Deploy to GitHub Pages
