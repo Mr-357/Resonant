@@ -13,8 +13,6 @@ jobs:
     name: Build Latest Snapshot Linux
     runs-on: ubuntu-latest
     permissions:
-      pages: write 
-      id-token: write 
       contents: write
 
     steps:
@@ -151,6 +149,11 @@ jobs:
           zip -r resonant-backend-snapshot.zip release-dist-windows/
           zip -r resonant-backend-snapshot-frontend.zip artifacts/build-artifacts-frontend/*
 
+      - name: Delete Existing Snapshot Release
+        run: gh release delete experimental --cleanup-tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Latest Snapshot Release
         uses: softprops/action-gh-release@v2
         with:
@@ -171,11 +174,22 @@ jobs:
         with:
           path: artifacts/build-artifacts-frontend/
 
-
-      - name: Deploy to GitHub Pages
-        id: pages-deploy
-        uses: actions/deploy-pages@v4
-
       - name: Build and push Docker images
         uses: ./.github/workflows/release-images.yaml
+    
+  release-pages:
+      needs: release
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+        pages: write
+        id-token: write
+      environment:
+        name: github-pages
+        url: ${{ steps.pages-deploy.outputs.page_url }}
+
+      steps:
+        - name: Deploy to GitHub Pages
+          id: pages-deploy
+          uses: actions/deploy-pages@v4
 
