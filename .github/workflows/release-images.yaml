@@ -62,14 +62,14 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest@v4
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-name: ghcr.io/mr-357/resonant-frontend:latest
           subject-digest: ${{ steps.push-frontend.outputs.digest }}
           push-to-registry: true
 
       - name: Generate artifact attestation
         uses: actions/attest@v4
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-name: ghcr.io/mr-357/resonant-backend:latest
           subject-digest: ${{ steps.push-backend.outputs.digest }}
           push-to-registry: true
       
