@@ -302,16 +302,23 @@ test.describe('Resonant E2E Tests', () => {
     await firstEmoji.click();
 
     // Send message with emoji
-    await page.getByPlaceholder(/Message #/).press('Enter');
+    const chatInput = page.getByPlaceholder(/Message #/);
+    await chatInput.press('Enter');
+    
+    // Wait for the input to clear to avoid race conditions with the next message
+    await expect(chatInput).toHaveValue('');
 
     // Verify emoji is in the message list (checking for generic emoji presence or specific text if known)
     await expect(page.locator('.message-content').last()).not.toBeEmpty();
 
     // 4. Test Edit Message
     const initialText = `Edit me ${Date.now()}`;
-    const editInput = page.getByPlaceholder(/Message #/);
-    await editInput.fill(initialText);
-    await editInput.press('Enter');
+    await chatInput.fill(initialText);
+    await chatInput.press('Enter');
+    
+    // Ensure input is cleared before verifying message visibility
+    await expect(chatInput).toHaveValue('');
+
     // Wait for message to appear to ensure DOM is stable
     await expect(page.getByText(initialText)).toBeVisible();
     
