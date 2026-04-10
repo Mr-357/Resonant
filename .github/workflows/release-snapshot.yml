@@ -153,6 +153,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+
+
+      - name: VirusTotal Scan
+        uses: crazy-max/ghaction-virustotal@v5
+        id: virustotal
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          update_release_body: true
+          files: |
+            artifacts/build-artifacts-windows/*
+
       - name: Create Latest Snapshot Release
         uses: softprops/action-gh-release@v2
         with:
@@ -160,7 +171,7 @@ jobs:
           prerelease: false
           name: "Latest Snapshot Build"
           body: "Latest change: ${{ github.event.head_commit.message }} (${{
-            github.event.head_commit.id }})"
+            github.event.head_commit.id }}) \n\n VirusTotal scan results: \n\n ${{ steps.virustotal.outputs.analysis }}"
           files: |
             resonant-backend-snapshot.tar.gz
             resonant-backend-snapshot.zip
