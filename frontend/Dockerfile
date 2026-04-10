@@ -19,5 +19,6 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 RUN mkdir -p /etc/nginx/certs
 
 EXPOSE 80
+EXPOSE 443
 
 CMD ["nginx", "-g", "daemon off;"]
