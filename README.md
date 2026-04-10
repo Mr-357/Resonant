@@ -86,7 +86,7 @@ There are multiple ways of running the application depending on your technical a
 This mode uses the SQLite database for easiest deployment and no installation of additional dependencies. It's only recommended for demos or a small number of users. Proceed with caution. It's recommended to replace the certificates with your own, or use Let's Encrypt! 
 
 
-1. Download the assets for running the backend from the `release` (link) page.
+1. Download the assets for running the backend from the [releases] (https://github.com/Mr-357/Resonant/releases) page.
 2. Modify the application.yaml file based on your needs.
 3. Run the native executable from your terminal of choice:
 
@@ -129,7 +129,7 @@ For a production-grade on-premise installation, you'll need to set up the infras
 
 ### Prerequisites
 
-- **Java 25** (to run the backend)
+- **Java 25** (to run the backend, unless you're using the native image executable)
 - **Node.js 18+** (to build the frontend)
 - **PostgreSQL** (Relational Database)
 - **Redis** (For rate limiting and WebSocket pub/sub)
@@ -147,13 +147,14 @@ cd backend
 ... Or you can build the native executable:
 ```bash
 cd backend
-./mvnw clean package -DskipTests -Dnative
+./mvnw clean package -DskipTests -Dnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true
 ```
 **Frontend:**
 Build the production static assets:
 ```bash
 cd frontend
 npm install
+echo echo "VITE_API_URL=https://<your-domain>" > .env.production
 npm run build
 # The static files will be in frontend/dist/
 ```
@@ -165,6 +166,10 @@ Update your `backend/src/main/resources/application.yml` or set environment vari
 - `REDIS_HOSTS`
 - `SSL_CERT_PATH` and `SSL_KEY_PATH`
 - `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` paths
+
+You can also check the wiki for configuration options.
+
+
 
 ### 3. Nginx Configuration
 
@@ -239,7 +244,7 @@ docker build -t myregistry/resonant-frontend:1.0 ./frontend
 docker push myregistry/resonant-backend:1.0
 docker push myregistry/resonant-frontend:1.0
 ```
-... or use the ones from the github container registry.
+... or use the ones from the github container registry. Make sure to update the certificates if using pre-built images.
 
 Update `k8s/*.yaml` with image URLs and deploy.
 
@@ -250,8 +255,8 @@ kubectl apply -f k8s/frontend-deployment.yaml
 kubectl apply -f k8s/service.yaml
 
 # Port-forward to access
-kubectl port-forward svc/resonant-frontend 3000:80
-kubectl port-forward svc/resonant-backend 8080:8080
+kubectl port-forward svc/resonant-frontend 3443:3443
+kubectl port-forward svc/resonant-backend 8443:8443
 ```
 
 
@@ -269,7 +274,7 @@ This section will be moved to the wiki eventually.
 
 ## Roadmap
 
-See Wiki(link).
+See [Wiki](https://github.com/Mr-357/Resonant/wiki).
 
 
 ## Contributing
