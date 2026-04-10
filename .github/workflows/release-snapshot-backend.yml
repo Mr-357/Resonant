@@ -173,15 +173,12 @@ jobs:
         uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
         with:
           path: artifacts/build-artifacts-frontend/
-
-      - name: Build and push Docker images
-        uses: ./.github/workflows/release-images.yaml
     
   release-pages:
       needs: release
       runs-on: ubuntu-latest
       permissions:
-        contents: write
+        contents: read
         pages: write
         id-token: write
       environment:
