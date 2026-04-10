@@ -6,13 +6,16 @@ permissions:
 on:
   release:
     types:
-      - created
       - published
       - edited
+      - released
+      - created
 
 jobs:
   virustotal:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       -
         name: VirusTotal Scan
