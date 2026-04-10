@@ -162,3 +162,18 @@ jobs:
             resonant-backend-snapshot.zip
             resonant-backend-snapshot-frontend.zip
 
+
+      - name: Upload static files as artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
+        with:
+          path: ./frontend/dist
+
+
+      - name: Deploy to GitHub Pages
+        id: pages-deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Build and push Docker images
+        uses: ./.github/workflows/release-images.yaml
+
