@@ -48,7 +48,7 @@ public class MessageSocket {
     public void onOpen(Session session, @PathParam("channelId") String channelId) {
         UUID id = UUID.fromString(channelId);
         sessions.computeIfAbsent(id, k -> ConcurrentHashMap.newKeySet()).add(session);
-        LOG.finest("Session opened: " + session.getId() + " for channel: " + id);
+        LOG.finest(() -> "Session opened: " + session.getId() + " for channel: " + id);
     }
 
     @OnClose
@@ -75,7 +75,7 @@ public class MessageSocket {
         managedExecutor.submit(() -> {
             try {
                 UUID channelUuid = UUID.fromString(channelId);
-                LOG.info("Received message on WS for channel " + channelUuid + ": " + messageJson);
+                LOG.finest(() -> "Received message on WS for channel " + channelUuid + ": " + messageJson);
 
                 // Parse the incoming JSON message
                 JsonNode rootNode = objectMapper.readTree(messageJson);
@@ -83,7 +83,7 @@ public class MessageSocket {
                 String content = rootNode.has("content") ? rootNode.get("content").asText() : null;
 
                 if (token == null || content == null || content.isBlank()) {
-                    session.getAsyncRemote().sendText("{\"error\": \"Invalid message format or missing token/content\"}");
+                    sendErrorMessage(session, "Invalid message format or missing token/content");
                     return;
                 }
 
@@ -95,10 +95,14 @@ public class MessageSocket {
                 messageService.create(channelUuid, content, userId);
             } catch (Exception e) {
                 LOG.warning("Failed to process message: " + e.getMessage());
-                // Optionally send error back to sender
-                session.getAsyncRemote().sendText("{\"error\": \"Unauthorized or Invalid Format\"}");
+                sendErrorMessage(session, "Unauthorized or Invalid Format");
             }
         });
+    }
+
+    private void sendErrorMessage(Session session, String error) {
+        String jsonError = String.format("{\"error\": \"%s\"}", error.replace("\"", "\\\""));
+        session.getAsyncRemote().sendText(jsonError);
     }
 
     public void broadcast(UUID channelId, Message message) {

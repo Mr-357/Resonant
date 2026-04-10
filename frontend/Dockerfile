@@ -1,9 +1,13 @@
 # Stage 1: Build React app
 FROM node:18-alpine AS builder
 WORKDIR /build
-COPY package*.json ./
-RUN npm ci
+
+# Define the build argument
+ARG VITE_API_URL
 COPY . .
+RUN touch .env.production
+RUN echo "VITE_API_URL=$VITE_API_URL" > .env.production
+RUN npm install
 RUN npm run build
 
 # Stage 2: Serve with Nginx

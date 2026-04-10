@@ -92,14 +92,14 @@
 .auth-toggle {
   margin-top: 1.5rem;
   text-align: center;
-  color: #72767D;
+  color: var(--text-subtle);
   font-size: 0.875rem;
 }
 
 .toggle-button {
   background: none;
   border: none;
-  color: #5865F2;
+  color: var(--accent-primary);
   font-weight: 600;
   cursor: pointer;
   padding: 0;

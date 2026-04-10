@@ -91,12 +91,14 @@
 }
 
 .message-input-area {
-  padding: 16px;
+  height: 52px;
+  padding: 0 16px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-tertiary);
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
+  box-sizing: border-box;
 }
 
 .error-message {
@@ -113,9 +115,10 @@
   flex: 1;
   align-items: center;
   background: var(--bg-modifier-accent);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 0 10px;
   position: relative; /* For emoji picker positioning */
+  height: 38px;
 }
 
 .input-wrapper > input {

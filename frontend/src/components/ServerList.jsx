@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { serverAPI } from '../api/client'
+import { serverAPI } from '../axios/client'
 import './ServerList.css'
 import Modal from './Modal'
 
@@ -22,6 +22,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   const [loadingBannedMembers, setLoadingBannedMembers] = useState(false)
   const [banDuration, setBanDuration] = useState(1) // Default 1 minute ban
 
+  const [error, setError] = useState(null)
   // State for custom confirmation modals
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showKickBanConfirm, setShowKickBanConfirm] = useState(null) // { type: 'kick' | 'ban', memberId: UUID, duration?: number }
@@ -48,13 +49,14 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
 
     try {
       const response = await serverAPI.create(newServerName)
-      setServers([...servers, response.data])
-      onServerSelect(response.data.id)
+      const newServer = response.data
+      setServers([...servers, newServer])
+      onServerSelect(newServer)
       setShowCreateModal(false)
       setNewServerName('')
     } catch (err) {
       console.error('Failed to create server:', err)
-      alert('Failed to create server')
+      setError('Failed to create server')
     }
   }
 
@@ -78,11 +80,13 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   const handleJoinServer = async (targetServerId) => {
     try {
       await serverAPI.join(targetServerId)
+      const response = await serverAPI.list()
+      setServers(response.data)
+      const joinedServer = response.data.find(s => String(s.id) === String(targetServerId))
+      onServerSelect(joinedServer || { id: targetServerId })
       setShowDiscovery(false)
-      await fetchServers() // Refresh the user's list
-      onServerSelect(targetServerId)
     } catch (err) {
-      alert('Failed to join server: ' + (err.response?.data?.error || err.message))
+      setError('Failed to join server: ' + (err.response?.data?.error || err.message))
     }
   }
 
@@ -95,7 +99,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       onServerSelect(null)
     } catch (err) {
       console.error('Failed to leave server:', err)
-      alert('Failed to leave server: ' + (err.response?.data?.error || err.message))
+      setError('Failed to leave server: ' + (err.response?.data?.error || err.message))
     } finally {
       setServerToLeave(null)
     }
@@ -165,7 +169,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       setSettingsModalOpen(false)
     } catch (err) {
       console.error("Update failed", err)
-      alert("Failed to update server")
+      setError("Failed to update server")
     }
   }
 
@@ -183,7 +187,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       setShowDeleteConfirm(false)
     } catch (err) {
       console.error("Delete failed", err)
-      alert("Failed to delete server")
+      setError("Failed to delete server")
     }
   }
 
@@ -213,7 +217,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       setShowKickBanConfirm(null)
     } catch (err) {
       console.error(`${type} member failed`, err)
-      alert(`Failed to ${type} member: ` + (err.response?.data?.error || err.message))
+      setError(`Failed to ${type} member: ` + (err.response?.data?.error || err.message))
     }
   }
 
@@ -233,33 +237,48 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       setShowKickBanConfirm(null)
     } catch (err) {
       console.error("Unban member failed", err)
-      alert("Failed to unban member: " + (err.response?.data?.error || err.message))
+      setError("Failed to unban member: " + (err.response?.data?.error || err.message))
     }
   }
 
   return (
-    <div className="server-list" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
-      <button className="server-button add-server" onClick={() => setShowCreateModal(true)} title="Add Server" disabled={loading}>
-        ➕
-      </button>
-      <button className="server-button explore-server" onClick={handleOpenDiscovery} title="Explore Servers">
-        🧭
-      </button>
-      {servers.map(server => (
-        <button
-          key={server.id}
-          className={`server-button ${activeServerId === server.id ? 'active' : ''}`}
-          onClick={() => handleSelectServer(server)}
-          onContextMenu={(e) => handleServerContextMenu(e, server)}
-          title={server.name}
-        >
-          {server.name.charAt(0).toUpperCase()}
+    <div className="server-list" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+      <div className="servers-scroller" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '12px', gap: '12px' }}>
+        <button className="server-button add-server" onClick={() => setShowCreateModal(true)} title="Add Server" disabled={loading}>
+          🪄
         </button>
-      ))}
+        <button className="server-button explore-server" onClick={handleOpenDiscovery} title="Explore Servers">
+          🧭
+        </button>
+        {servers.map(server => (
+          <button
+            key={server.id}
+            className={`server-button ${activeServerId === server.id ? 'active' : ''}`}
+            onClick={() => handleSelectServer(server)}
+            onContextMenu={(e) => handleServerContextMenu(e, server)}
+            title={server.name}
+          >
+            {server.name.charAt(0).toUpperCase()}
+          </button>
+        ))}
+      </div>
 
       {activeServer && (
-        <div className="server-list-footer" style={{ marginTop: 'auto', padding: '15px 5px', textAlign: 'center', borderTop: '2px solid var(--border-tertiary)', width: '100%' }}>
-          <div className="active-server-name" style={{ color: 'white', fontWeight: 'bold', fontSize: '12px', marginBottom: '8px', wordBreak: 'break-word' }}>
+        <div 
+          className="server-list-footer" 
+          style={{ 
+            marginTop: 'auto', 
+            height: '52px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            borderTop: '1px solid var(--border-tertiary)', 
+            width: '100%',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div className="active-server-name" style={{ color: 'white', fontWeight: 'bold', fontSize: '11px', wordBreak: 'break-word', textAlign: 'center', padding: '0 4px' }}>
             {activeServer.name}
           </div>
           {effectiveUser && !isOwner(activeServer) && (
@@ -465,6 +484,15 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
           <button onClick={() => setShowKickBanConfirm(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
           <button onClick={showKickBanConfirm?.type === 'unban' ? confirmUnban : confirmKickBan} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Confirm</button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!error} onClose={() => setError(null)} title="Error">
+        <p>{error}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button onClick={() => setError(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--accent-primary)', color: 'white' }}>
+            OK
+          </button>
         </div>
       </Modal>
     </div>

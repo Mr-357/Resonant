@@ -49,21 +49,21 @@ services:
     build:
       context: ../../frontend
       dockerfile: Dockerfile
-    ports:
-      - "3443:3443" # Expose HTTPS port
+      args:
+       VITE_API_URL: https://backend:8443 # Frontend connects to backend via service name
     depends_on:
       - backend
     volumes:
       - ../../backend/certs:/etc/nginx/certs:ro
-    environment:
-      VITE_API_URL: https://backend:8443 # Frontend connects to backend via service name
+
+      
 
   e2e-tests:
     image: mcr.microsoft.com/playwright:v1.58.2-jammy
     working_dir: /work
     environment:
       - API_URL=https://backend:8443
-      - APP_URL=https://frontend:3443  # E2E tests connect to frontend via HTTPS
+      - APP_URL=https://frontend:443  # E2E tests connect to frontend via HTTPS
       - CI=true
     volumes:
       - ../:/work

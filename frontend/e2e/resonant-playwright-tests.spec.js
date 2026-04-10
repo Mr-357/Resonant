@@ -192,7 +192,7 @@ test.describe('Resonant E2E Tests', () => {
 
     // 8. Open Discovery again and verify Server A is gone
     await page.getByTitle('Explore Servers').click();
-    await expect(serverRow).not.toBeVisible();
+    await expect(page.locator('.server-discovery-list').getByText(targetServer.name, { exact: true })).not.toBeVisible();
   });
 
   test('User can leave a joined server', async ({ page, request }) => {
@@ -323,7 +323,6 @@ test.describe('Resonant E2E Tests', () => {
     await expect(page.getByText(initialText)).toBeVisible();
     
     // Hover/Find the message and click edit (assuming button is visible or appears on hover)
-    // For test stability, we might force click or ensure visibility
     const messageItem = page.locator('.message-item', { hasText: initialText });
     await messageItem.hover();
     await messageItem.locator('button[title="Edit"]').click({ force: true });
@@ -332,7 +331,6 @@ test.describe('Resonant E2E Tests', () => {
     await expect(page.getByText(initialText + ' - edited')).toBeVisible();
 
     // 5. Test Delete Message
-    page.on('dialog', dialog => dialog.accept()); // Handle browser confirm
     const editedMessageItem = page.locator('.message-item', { hasText: initialText + ' - edited' });
     await editedMessageItem.hover();
     await editedMessageItem.locator('button[title="Delete"]').click({ force: true });
@@ -437,8 +435,9 @@ test.describe('Resonant E2E Tests', () => {
     // Delete
     await page.getByText(`# ${newChannelName}`).click({ button: 'right' });
     
-    page.once('dialog', dialog => dialog.accept());
     await page.getByRole('button', { name: 'Delete Channel' }).click();
+    const confirmModal = page.locator('.modal-content').filter({ hasText: 'Confirm Channel Deletion' });
+    await confirmModal.getByRole('button', { name: 'Delete' }).click();
 
     // Verify gone
     await expect(page.getByText(`# ${newChannelName}`)).not.toBeVisible();
@@ -479,7 +478,6 @@ test.describe('Resonant E2E Tests', () => {
     await messageItem.hover();
     
     // Click delete
-    page.once('dialog', dialog => dialog.accept());
     await messageItem.locator('button[title="Delete"]').click();
     await page.getByRole('button', { name: 'Delete' }).click();
     // Verify gone

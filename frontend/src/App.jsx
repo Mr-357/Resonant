@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AuthForm from './components/AuthForm'
 import Dashboard from './components/Dashboard'
 import Loading from './components/Loading'
-import apiClient from './api/client'
+import apiClient from './axios/client'
 import './App.css'
 import './theme.css'
 
@@ -171,7 +171,7 @@ function App() {
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '5px' }}>Is the server hosted elsewhere?</p>
                   <input 
                     type="text" 
-                    placeholder="http://localhost:8080" 
+                    placeholder="https://localhost:8443" 
                     value={customBackendUrl}
                     onChange={(e) => setCustomBackendUrl(e.target.value)}
                     style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-tertiary)', marginRight: '5px' }}

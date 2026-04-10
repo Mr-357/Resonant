@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import EmojiPicker from 'emoji-picker-react'
 import PropTypes from 'prop-types'
-import { messageAPI, serverAPI } from '../api/client'
+import { messageAPI, serverAPI } from '../axios/client'
+import apiClient from '../axios/client'
 import Modal from './Modal'
 import './MessageThread.css' // Assuming you have or will create this CSS
 
@@ -14,6 +15,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   const [editContent, setEditContent] = useState('')
   const messagesEndRef = useRef(null)
   const [messageToDelete, setMessageToDelete] = useState(null)
+  const [error, setError] = useState(null)
   const socketRef = useRef(null)
 
   useEffect(() => {
@@ -68,8 +70,18 @@ export default function MessageThread({ serverId, channel, currentUser }) {
       socketRef.current.close()
     }
 
-    const baseUrl = window.__API_URL__ || window.location.origin.replace(/^http/, 'ws')
-    const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/chat/${channel.id}`
+    // Prioritize the global override, then the client's current base URL, then window origin
+    let apiBase = window.__API_URL__ || apiClient.defaults.baseURL || window.location.origin;
+    
+    // Handle relative URLs (e.g. "/api") by joining with current origin
+    if (apiBase.startsWith('/')) {
+      apiBase = window.location.origin + apiBase;
+    }
+
+    // Convert http(s) to ws(s). This regex handles https -> wss and http -> ws correctly.
+    const wsBase = apiBase.replace(/^http/, 'ws');
+    const wsUrl = `${wsBase}/chat/${channel.id}`;
+    
     
     try {
         const socket = new WebSocket(wsUrl)
@@ -87,14 +99,25 @@ export default function MessageThread({ serverId, channel, currentUser }) {
     e.preventDefault()
     if (!input.trim()) return
 
-    try {
-      const response = await messageAPI.create(channel.id, input)
-      updateMessageList(response.data)
-      setInput('')
-      setShowEmojiPicker(false)
-    } catch (err) {
-      console.error('Failed to send message:', err)
+    // Check if socket is ready before sending
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      setError('Connection lost. Reconnecting...')
+      setupWebSocket()
+      return
     }
+
+    const token = localStorage.getItem('token')
+    const payload = JSON.stringify({
+      token: token,
+      content: input
+    })
+
+    socketRef.current.send(payload)
+    
+    // Clear input immediately for better UX
+    // The message will appear in the UI once the server broadcasts it back
+    setInput('')
+    setShowEmojiPicker(false)
   }
 
   const confirmDelete = async () => {
@@ -129,7 +152,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
       setEditContent('')
     } catch (err) {
       console.error('Failed to update message:', err)
-      alert('Failed to update message')
+      setError('Failed to update message')
     }
   }
 
@@ -228,6 +251,15 @@ export default function MessageThread({ serverId, channel, currentUser }) {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
           <button onClick={() => setMessageToDelete(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
           <button onClick={confirmDelete} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Delete</button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!error} onClose={() => setError(null)} title="Error">
+        <p>{error}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button onClick={() => setError(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--accent-primary)', color: 'white' }}>
+            OK
+          </button>
         </div>
       </Modal>
     </div>

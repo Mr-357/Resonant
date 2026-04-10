@@ -1,11 +1,11 @@
 import axios from 'axios'
 
 // Create axios instance with base URL
-// In development: uses Vite proxy to http://localhost:8080
+// In development: uses Vite proxy
 // In production: uses same domain as frontend
 const getBaseURL = () => {
   if (typeof window !== 'undefined' && window.__API_URL__) return window.__API_URL__;
-  return import.meta.env.MODE === 'development' ? '/' : import.meta.env.VITE_BACKEND_URL;
+  return import.meta.env.MODE === 'development' ? '/' : import.meta.env.VITE_API_URL;
 };
 
 const apiClient = axios.create({

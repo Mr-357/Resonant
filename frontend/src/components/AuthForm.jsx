@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import PropTypes from 'prop-types'
-import { authAPI } from '../api/client'
+import { authAPI } from '../axios/client'
 import './AuthForm.css'
 
 export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
@@ -74,6 +74,7 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
           <div className="form-group">
             <label htmlFor="username">Username</label>
             <input
+              autoComplete="username"
               type="text"
               id="username"
               name="username"

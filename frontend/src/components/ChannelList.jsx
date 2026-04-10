@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { channelAPI, serverAPI } from '../api/client'
+import { channelAPI, serverAPI } from '../axios/client'
 import './ChannelList.css'
 import Modal from './Modal'
 
@@ -12,6 +12,8 @@ export default function ChannelList({ serverId, activeChannelId, onChannelSelect
   const [serverOwnerId, setServerOwnerId] = useState(null)
   const [editChannel, setEditChannel] = useState(null)
   const [editChannelName, setEditChannelName] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     if (serverId) {
@@ -46,7 +48,7 @@ export default function ChannelList({ serverId, activeChannelId, onChannelSelect
       setNewChannelName('')
     } catch (err) {
       console.error('Failed to create channel:', err)
-      alert('Failed to create channel')
+      setError('Failed to create channel')
     }
   }
 
@@ -73,20 +75,25 @@ export default function ChannelList({ serverId, activeChannelId, onChannelSelect
       setEditChannel(null)
     } catch (err) {
       console.error("Update channel failed", err)
-      alert("Failed to update channel")
+      setError("Failed to update channel")
     }
   }
 
-  const handleDeleteChannel = async () => {
-    if (!editChannel || !window.confirm(`Delete #${editChannel.name}?`)) return
+  const handleDeleteChannel = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDeleteChannel = async () => {
+    if (!editChannel) return
     try {
       await channelAPI.delete(serverId, editChannel.id)
       setChannels(prev => prev.filter(c => c.id !== editChannel.id))
       if (activeChannelId === editChannel.id) onChannelSelect(null)
       setEditChannel(null)
+      setShowDeleteConfirm(false)
     } catch (err) {
       console.error("Delete channel failed", err)
-      alert("Failed to delete channel")
+      setError("Failed to delete channel")
     }
   }
 
@@ -173,6 +180,27 @@ export default function ChannelList({ serverId, activeChannelId, onChannelSelect
             <button type="submit" style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--accent-primary)', color: 'white' }}>Save Changes</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal 
+        isOpen={showDeleteConfirm} 
+        onClose={() => setShowDeleteConfirm(false)} 
+        title="Confirm Channel Deletion"
+      >
+        <p>Are you sure you want to delete <strong>#{editChannel?.name}</strong>? This action cannot be undone.</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+          <button onClick={() => setShowDeleteConfirm(false)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={confirmDeleteChannel} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--status-danger)', color: 'white' }}>Delete</button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!error} onClose={() => setError(null)} title="Error">
+        <p>{error}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button onClick={() => setError(null)} style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--accent-primary)', color: 'white' }}>
+            OK
+          </button>
+        </div>
       </Modal>
     </div>
   )

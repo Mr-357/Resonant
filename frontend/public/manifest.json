@@ -1,13 +1,14 @@
 {
-  "name": "Resonant - Discord Clone",
+  "name": "Resonant",
   "short_name": "Resonant",
   "description": "A modern Discord-like chat platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#5865F2",
+  "theme_color": "#3c6079",
   "orientation": "portrait-primary",
   "scope": "/",
+  "version": "1.0.2",
   "icons": [
     {
       "src": "/icon-192x192.png",
