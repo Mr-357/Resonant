@@ -13,6 +13,8 @@ jobs:
     name: Build Latest Snapshot Linux
     runs-on: ubuntu-latest
     permissions:
+      pages: write 
+      id-token: write 
       contents: write
 
     steps:
