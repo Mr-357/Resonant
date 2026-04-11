@@ -28,53 +28,6 @@ A modern, privacy focused Discord-like chat platform built with Quarkus and Reac
 
 In the root of the project is a docker-compose file for running the app.
 
-## Quick Start
-
-### Local Development with Docker Compose
-
-```bash
-# Build and start all services
-docker-compose up --build
-
-# Services available at:
-# Frontend: https://localhost:3443
-# Backend: http://localhost:8443
-# PostgreSQL: localhost:5432
-# Redis: localhost:6379
-```
-
-### Manual Development Setup
-
-**Backend:**
-```bash
-cd backend
-mvn quarkus:dev
-# Backend runs on https://localhost:8443
-# Auto-reload enabled on code changes
-```
-
-**Frontend (separate terminal):**
-```bash
-cd frontend
-npm install
-npm run dev
-# Frontend runs on http://localhost:3000
-```
-
-### Running playwright tests
-
-If you don't want to set up the database and services for playwright tests, there is a docker-compose file in the `frontend/e2e` folder which will set everything up for testing. You can run the tests with `docker-compose run --build  --rm e2e-tests`.
-
-## API Documentation
-
-### OpenAPI/Swagger Documentation
-
-Once the application is running, you can access the interactive API documentation at:
-
-- **Swagger UI**: `https://localhost:8443/q/swagger-ui`
-- **OpenAPI JSON**: `https://localhost:8443/q/openapi`
-- **OpenAPI YAML**: `https://localhost:8443/q/openapi?format=yaml`
-
 
 ## Deployment
 
@@ -87,7 +40,7 @@ This mode uses the SQLite database for easiest deployment and no installation of
 
 
 1. Download the assets for running the backend from the [releases](https://github.com/Mr-357/Resonant/releases) page.
-2. Modify the application.yaml file based on your needs.
+2. Modify the application.yaml file based on your needs. Check the [Wiki](https://github.com/Mr-357/Resonant/wiki/Configuration) for more information. It's highly recommended to update certain properties.
 3. Run the native executable from your terminal of choice:
 
   - Linux: `./resonant-backend-1-runner -Dquarkus.profile=sqlite`
@@ -151,7 +104,52 @@ kubectl apply -f k8s/service.yaml
 kubectl port-forward svc/resonant-frontend 3443:3443
 kubectl port-forward svc/resonant-backend 8443:8443
 ```
+## Development
 
+### Local Development with Docker Compose
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Services available at:
+# Frontend: https://localhost:3443
+# Backend: http://localhost:8443
+# PostgreSQL: localhost:5432
+# Redis: localhost:6379
+```
+
+### Manual Development Setup
+
+**Backend:**
+```bash
+cd backend
+mvn quarkus:dev
+# Backend runs on https://localhost:8443
+# Auto-reload enabled on code changes
+```
+
+**Frontend (separate terminal):**
+```bash
+cd frontend
+npm install
+npm run dev
+# Frontend runs on http://localhost:3000
+```
+
+### Running playwright tests
+
+If you don't want to set up the database and services for playwright tests, there is a docker-compose file in the `frontend/e2e` folder which will set everything up for testing. You can run the tests with `docker-compose run --build  --rm e2e-tests`.
+
+## API Documentation
+
+### OpenAPI/Swagger Documentation
+
+Once the application is running, you can access the interactive API documentation at:
+
+- **Swagger UI**: `https://localhost:8443/q/swagger-ui`
+- **OpenAPI JSON**: `https://localhost:8443/q/openapi`
+- **OpenAPI YAML**: `https://localhost:8443/q/openapi?format=yaml`
 
 ## Troubleshooting
 
