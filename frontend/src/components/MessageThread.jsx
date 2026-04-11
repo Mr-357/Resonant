@@ -48,6 +48,9 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   }
 
   const updateMessageList = (message) => {
+    // Validate that the message object and ID are present to prevent processing malformed socket data
+    if (!message || !message.id) return;
+
     setMessages(prev => {
       const index = prev.findIndex(m => m.id === message.id)
       if (index === -1) return [...prev, message]
@@ -80,7 +83,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
 
     // Convert http(s) to ws(s). This regex handles https -> wss and http -> ws correctly.
     const wsBase = apiBase.replace(/^http/, 'ws');
-    const wsUrl = `${wsBase}/chat/${channel.id}`;
+    const wsUrl = `${wsBase}/chat/${encodeURIComponent(channel.id)}`;
     
     
     try {

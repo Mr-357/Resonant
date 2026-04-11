@@ -93,13 +93,13 @@ export const channelAPI = {
 // Message endpoints
 export const messageAPI = {
   list: (channelId, params = {}) =>
-    apiClient.get(`/api/channels/${channelId}/messages`, { params }),
+    apiClient.get(`/api/channels/${encodeURIComponent(channelId)}/messages`, { params }),
   create: (channelId, content) =>
-    apiClient.post(`/api/channels/${channelId}/messages`, { content }),
+    apiClient.post(`/api/channels/${encodeURIComponent(channelId)}/messages`, { content }),
   update: (channelId, messageId, content) =>
-    apiClient.patch(`/api/channels/${channelId}/messages/${messageId}`, { content }),
+    apiClient.patch(`/api/channels/${encodeURIComponent(channelId)}/messages/${encodeURIComponent(messageId)}`, { content }),
   delete: (channelId, messageId) =>
-    apiClient.delete(`/api/channels/${channelId}/messages/${messageId}`),
+    apiClient.delete(`/api/channels/${encodeURIComponent(channelId)}/messages/${encodeURIComponent(messageId)}`),
 }
 
 export default apiClient
