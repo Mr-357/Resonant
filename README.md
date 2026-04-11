@@ -2,6 +2,8 @@
 
 A modern, privacy focused Discord-like chat platform built with Quarkus and React.
 
+Try it out [here](https://mr-357.github.io/Resonant/)
+
 ## Architecture
 
 - **Backend**: Quarkus 3.x
@@ -46,7 +48,7 @@ This mode uses the SQLite database for easiest deployment and no installation of
   - Linux: `./resonant-backend-1-runner -Dquarkus.profile=sqlite`
   - Windows: `.\resonant-backend-1-runner.exe -Dquarkus.profile=sqlite`
 
-4. Use the frontend from Github Pages (link) to connect to your local backend by changing the instance:
+4. Use the frontend from [Github Pages](https://mr-357.github.io/Resonant/) to connect to your local backend by changing the instance:
 
 - In case the demo server is down:
 
