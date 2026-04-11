@@ -1,10 +1,10 @@
 const CACHE_NAME = 'resonant-v2'
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/App.css',
-  '/index.css'
+  './',
+  'index.html',
+  'manifest.json',
+  'App.css',
+  'index.css'
 ]
 
 // Install event
