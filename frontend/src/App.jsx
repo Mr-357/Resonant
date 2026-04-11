@@ -15,7 +15,7 @@ function App() {
   const [retryCount, setRetryCount] = useState(0)
   const [retryTimer, setRetryTimer] = useState(0)
   const [customBackendUrl, setCustomBackendUrl] = useState('')
-  const [targetApiUrl, setTargetApiUrl] = useState(window.__API_URL__)
+  const [targetApiUrl, setTargetApiUrl] = useState(window.__API_URL__ || import.meta.env.VITE_API_URL || '')
   const [isSSLError, setIsSSLError] = useState(false)
 
   useEffect(() => {

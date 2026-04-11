@@ -137,7 +137,10 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
             <button type="button" onClick={onChangeServer} style={{ background: 'none', border: 'none', color: 'var(--text-subtle)', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}>
               Change Server
             </button>
-            {serverUrl && serverUrl !== '/' && serverUrl !== window.__API_URL__ && (
+            {serverUrl && 
+             serverUrl !== '/' && 
+             serverUrl !== window.__API_URL__ && 
+             serverUrl !== import.meta.env.VITE_API_URL && (
               <div style={{ color: 'var(--text-subtle)', fontSize: '0.75rem', marginTop: '4px' }}>
                 Connecting to: {serverUrl}
               </div>
