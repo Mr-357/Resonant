@@ -107,6 +107,7 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
               value={formData.password}
               onChange={handleChange}
               required
+              autoComplete={isLogin ? "current-password" : "new-password"}
             />
           </div>
 
@@ -136,7 +137,7 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
             <button type="button" onClick={onChangeServer} style={{ background: 'none', border: 'none', color: 'var(--text-subtle)', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}>
               Change Server
             </button>
-            {serverUrl && serverUrl !== '/' && (
+            {serverUrl && serverUrl !== '/' && serverUrl !== window.__API_URL__ && (
               <div style={{ color: 'var(--text-subtle)', fontSize: '0.75rem', marginTop: '4px' }}>
                 Connecting to: {serverUrl}
               </div>

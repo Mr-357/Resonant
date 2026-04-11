@@ -37,11 +37,11 @@ self.addEventListener('fetch', event => {
           .then(response => {
             const clonedResponse = response.clone()
             caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, clonedResponse)
+              cache.put('index.html', clonedResponse)
             })
             return response
           })
-          .catch(() => caches.match(event.request))
+          .catch(() => caches.match('index.html'))
       )
       return
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import AuthForm from './components/AuthForm'
 import Dashboard from './components/Dashboard'
 import Loading from './components/Loading'
@@ -204,7 +204,7 @@ function App() {
   }
 
   return (
-    <Router basename={import.meta.env.BASE_URL}>
+    <Router>
       <Routes>
         {isAuthenticated ? (
           <>
