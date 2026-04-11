@@ -171,6 +171,7 @@ function App() {
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '5px' }}>Is the server hosted elsewhere?</p>
                   <input 
                     type="text" 
+                    id='custom-backend'
                     placeholder="https://localhost:8443" 
                     value={customBackendUrl}
                     onChange={(e) => setCustomBackendUrl(e.target.value)}
