@@ -206,7 +206,7 @@ jobs:
           run: |
             cd frontend
             npm install
-            echo "VITE_API_URL=https://localhost:8443" > .env.production
+            echo "VITE_API_URL=https://${{ secrets.BACKEND_URL }}" > .env.production
             sed -i "s|base: '/'|base: '/${{ github.event.repository.name }}/'|g" vite.config.js
             npm run build
             
