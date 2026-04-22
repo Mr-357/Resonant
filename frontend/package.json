@@ -25,6 +25,7 @@
     "eslint": "^9.7.0",
     "eslint-plugin-react": "^7.33.0",
     "brace-expansion": ">=1.1.13",
-    "vite": "^6.4.2"
+    "vite": "^6.4.2",
+    "follow-redirects": "^1.16.0"
   }
 }
