@@ -103,6 +103,12 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
 
   const confirmLeaveServer = async () => {
     if (!serverToLeave) return
+    // Validate server ID before API call
+    if (!isValidUUID(serverToLeave.id)) {
+      setError('Invalid server ID format')
+      setServerToLeave(null)
+      return
+    }
 
     try {
       await serverAPI.leave(serverToLeave.id)
@@ -144,6 +150,11 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
 
   const handleServerContextMenu = (e, server) => {
     e.preventDefault()
+    // Validate server ID before using it in API calls
+    if (!isValidUUID(server.id)) {
+      setError('Invalid server ID format')
+      return
+    }
     if (isOwner(server)) {
       setSettingsServer(server)
       setSettingsName(server.name)
@@ -164,12 +175,22 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   }
   
   const fetchBannedMembers = async (serverId) => { // Renamed from fetchBannedMembers to getBannedMembers for clarity
+    // Validate server ID before API call
+    if (!isValidUUID(serverId)) {
+      console.error("Invalid server ID format")
+      return []
+    }
     return serverAPI.getBannedMembers(serverId).then(res => res.data || []).catch(err => { console.error("Failed to fetch banned members", err); return [] })
   }
   
   const handleUpdateServer = async (e) => {
     e.preventDefault()
     if (!settingsName.trim() || !settingsServer) return
+    // Validate server ID before API call
+    if (!isValidUUID(settingsServer.id)) {
+      setError('Invalid server ID format')
+      return
+    }
     try {
       const res = await serverAPI.update(settingsServer.id, settingsName)
       setServers(prev => prev.map(s => s.id === settingsServer.id ? { ...s, name: res.data.name } : s))
@@ -190,6 +211,12 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
 
   const confirmDeleteServer = async () => {
     if (!settingsServer) return
+    // Validate server ID before API call
+    if (!isValidUUID(settingsServer.id)) {
+      setError('Invalid server ID format')
+      setShowDeleteConfirm(false)
+      return
+    }
     try {
       await serverAPI.delete(settingsServer.id)
       setServers(prev => prev.filter(s => s.id !== settingsServer.id))
@@ -213,6 +240,12 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   const confirmKickBan = async () => {
     if (!showKickBanConfirm) return
     const { type, memberId, duration } = showKickBanConfirm
+    // Validate server and member IDs before API calls
+    if (!isValidUUID(settingsServer.id) || !isValidUUID(memberId)) {
+      setError('Invalid server or member ID format')
+      setShowKickBanConfirm(null)
+      return
+    }
 
     try {
       if (type === 'kick') {
@@ -239,6 +272,12 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   const confirmUnban = async () => {
     if (!showKickBanConfirm || showKickBanConfirm.type !== 'unban') return
     const { memberId } = showKickBanConfirm
+    // Validate server and member IDs before API calls
+    if (!isValidUUID(settingsServer.id) || !isValidUUID(memberId)) {
+      setError('Invalid server or member ID format')
+      setShowKickBanConfirm(null)
+      return
+    }
 
     try {
       await serverAPI.unbanMember(settingsServer.id, memberId) // This now triggers a 1-minute ban on the backend
