@@ -6,6 +6,11 @@ import apiClient from '../axios/client'
 import Modal from './Modal'
 import './MessageThread.css' // Assuming you have or will create this CSS
 
+const isValidUUID = (uuid) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(String(uuid))
+}
+
 export default function MessageThread({ serverId, channel, currentUser }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -19,7 +24,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   const socketRef = useRef(null)
 
   useEffect(() => {
-    if (serverId && channel?.id) {
+    if (serverId && channel?.id && isValidUUID(serverId) && isValidUUID(channel.id)) {
       fetchMessages()
       serverAPI.get(serverId)
         .then(res => setServerOwnerId(res.data.owner?.id || res.data.ownerId))
@@ -38,6 +43,10 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   }, [messages])
 
   const fetchMessages = async () => {
+    if (!isValidUUID(channel.id)) {
+      setError('Invalid channel ID format')
+      return
+    }
     try {
       const response = await messageAPI.list(channel.id)
       // Assuming API returns a list or page object. Adjust if needed.
@@ -71,6 +80,12 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   const setupWebSocket = () => {
     if (socketRef.current) {
       socketRef.current.close()
+    }
+
+    // Validate channel ID before using it in URL
+    if (!isValidUUID(channel.id)) {
+      setError('Invalid channel ID format')
+      return
     }
 
     // Prioritize the global override, then the client's current base URL, then window origin
@@ -125,6 +140,12 @@ export default function MessageThread({ serverId, channel, currentUser }) {
 
   const confirmDelete = async () => {
     if (!messageToDelete) return
+    // Validate IDs before making API call
+    if (!isValidUUID(channel.id) || !isValidUUID(messageToDelete.id)) {
+      setError('Invalid channel or message ID format')
+      setMessageToDelete(null)
+      return
+    }
     try {
       await messageAPI.delete(channel.id, messageToDelete.id)
       setMessages(prev => prev.filter(m => m.id !== messageToDelete.id))
@@ -148,6 +169,11 @@ export default function MessageThread({ serverId, channel, currentUser }) {
 
   const saveEdit = async (messageId) => {
     if (!editContent.trim()) return
+    // Validate IDs before making API call
+    if (!isValidUUID(channel.id) || !isValidUUID(messageId)) {
+      setError('Invalid channel or message ID format')
+      return
+    }
     try {
       const response = await messageAPI.update(channel.id, messageId, editContent)
       updateMessageList(response.data)

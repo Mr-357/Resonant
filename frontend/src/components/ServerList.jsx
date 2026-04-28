@@ -4,6 +4,11 @@ import { serverAPI } from '../axios/client'
 import './ServerList.css'
 import Modal from './Modal'
 
+const isValidUUID = (uuid) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(String(uuid))
+}
+
 export default function ServerList({ currentUser, activeServerId, onServerSelect }) {
   const [servers, setServers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -78,6 +83,12 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   }
 
   const handleJoinServer = async (targetServerId) => {
+    // Validate server ID is a valid UUID
+    if (!isValidUUID(targetServerId)) {
+      setError('Invalid server ID format. Please try again.')
+      return
+    }
+
     try {
       await serverAPI.join(targetServerId)
       const response = await serverAPI.list()
