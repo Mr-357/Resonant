@@ -139,7 +139,7 @@ export default function AuthForm({ onLogin, onChangeServer, serverUrl }) {
             </button>
             {serverUrl && 
              serverUrl !== '/' && 
-             serverUrl !== window.__API_URL__ && 
+             serverUrl !== globalThis.__API_URL__ && 
              serverUrl !== import.meta.env.VITE_API_URL && (
               <div style={{ color: 'var(--text-subtle)', fontSize: '0.75rem', marginTop: '4px' }}>
                 Connecting to: {serverUrl}

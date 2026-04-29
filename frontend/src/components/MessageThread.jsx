@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import EmojiPicker from 'emoji-picker-react'
 import PropTypes from 'prop-types'
-import { messageAPI, serverAPI } from '../axios/client'
-import apiClient from '../axios/client'
+import { messageAPI, serverAPI, apiClient } from '../axios/client'
 import Modal from './Modal'
 import './MessageThread.css' // Assuming you have or will create this CSS
+
 
 const isValidUUID = (uuid) => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -26,7 +26,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
   useEffect(() => {
     if (serverId && channel?.id && isValidUUID(serverId) && isValidUUID(channel.id)) {
       fetchMessages()
-      serverAPI.get(serverId)
+      serverAPI.get(encodeURIComponent(serverId))
         .then(res => setServerOwnerId(res.data.owner?.id || res.data.ownerId))
         .catch(err => console.error("Failed to load server info", err))
       setupWebSocket()
@@ -89,11 +89,11 @@ export default function MessageThread({ serverId, channel, currentUser }) {
     }
 
     // Prioritize the global override, then the client's current base URL, then window origin
-    let apiBase = window.__API_URL__ || apiClient.defaults.baseURL || window.location.origin;
+    let apiBase = globalThis.__API_URL__ || apiClient.defaults.baseURL || globalThis.location.origin;
     
     // Handle relative URLs (e.g. "/api") by joining with current origin
     if (apiBase.startsWith('/')) {
-      apiBase = window.location.origin + apiBase;
+      apiBase = globalThis.location.origin + apiBase;
     }
 
     // Convert http(s) to ws(s). This regex handles https -> wss and http -> ws correctly.

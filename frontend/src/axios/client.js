@@ -4,7 +4,7 @@ import axios from 'axios'
 // In development: uses Vite proxy
 // In production: uses same domain as frontend
 const getBaseURL = () => {
-  if (typeof window !== 'undefined' && window.__API_URL__) return window.__API_URL__;
+  if (typeof globalThis !== 'undefined' && globalThis.__API_URL__) return globalThis.__API_URL__;
   return import.meta.env.MODE === 'development' ? '/' : import.meta.env.VITE_API_URL;
 };
 
@@ -35,11 +35,14 @@ apiClient.interceptors.response.use(
       // Clear token and user data on unauthorized
       localStorage.removeItem('token')
       localStorage.removeItem('currentUser')
-      window.location.href = '/auth'
+      globalThis.location.href = '#/auth'
     }
     throw error
   }
 )
+
+// Export apiClient as named export for use in components
+export { apiClient }
 
 // Auth endpoints
 export const authAPI = {

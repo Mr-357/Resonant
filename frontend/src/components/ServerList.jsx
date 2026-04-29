@@ -90,7 +90,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
     }
 
     try {
-      await serverAPI.join(targetServerId)
+      await serverAPI.join(encodeURIComponent(targetServerId))
       const response = await serverAPI.list()
       setServers(response.data)
       const joinedServer = response.data.find(s => String(s.id) === String(targetServerId))
@@ -129,6 +129,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
       const stored = localStorage.getItem('currentUser')
       return stored ? JSON.parse(stored) : null
     } catch (err) {
+      console.error('Failed to parse currentUser from localStorage:', err)
       return null
     }
   }
@@ -270,7 +271,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
   }
 
   const confirmUnban = async () => {
-    if (!showKickBanConfirm || showKickBanConfirm.type !== 'unban') return
+    if (showKickBanConfirm?.type !== 'unban') return
     const { memberId } = showKickBanConfirm
     // Validate server and member IDs before API calls
     if (!isValidUUID(settingsServer.id) || !isValidUUID(memberId)) {
@@ -448,7 +449,7 @@ export default function ServerList({ currentUser, activeServerId, onServerSelect
                         type="number"
                         min="0"
                         value={banDuration}
-                        onChange={(e) => setBanDuration(parseInt(e.target.value))}
+                        onChange={(e) => setBanDuration(Number.parseInt(e.target.value))}
                         style={{ width: '50px', padding: '4px', borderRadius: '3px', border: 'none', backgroundColor: 'var(--bg-tertiary)', color: 'white', fontSize: '0.8em' }}
                         title="Ban duration in minutes (0 for permanent)"
                       />

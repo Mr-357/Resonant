@@ -69,7 +69,7 @@ test.describe('Resonant E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Inject the API URL so the frontend can connect directly to the backend
     await page.addInitScript((url) => {
-      window.__API_URL__ = url;
+      globalThis.__API_URL__ = url;
     }, API_URL);
   });
 
@@ -248,10 +248,10 @@ test.describe('Resonant E2E Tests', () => {
 
     // 4. Create separate browser contexts for User A and User B
     const contextA = await browser.newContext();
-    await contextA.addInitScript((url) => { window.__API_URL__ = url; }, API_URL);
+    await contextA.addInitScript((url) => { globalThis.__API_URL__ = url; }, API_URL);
     const pageA = await contextA.newPage();
     const contextB = await browser.newContext();
-    await contextB.addInitScript((url) => { window.__API_URL__ = url; }, API_URL);
+    await contextB.addInitScript((url) => { globalThis.__API_URL__ = url; }, API_URL);
     const pageB = await contextB.newPage();
 
     // 5. Login User A and go to channel
@@ -518,7 +518,7 @@ test.describe('Resonant E2E Tests', () => {
 
     // 4. Member tries to rejoin
     const memberContext = await page.context().browser().newContext({ ignoreHTTPSErrors: true });
-    await memberContext.addInitScript((url) => { window.__API_URL__ = url; }, API_URL);
+    await memberContext.addInitScript((url) => { globalThis.__API_URL__ = url; }, API_URL);
     const memberPage = await memberContext.newPage();
     await loginUser(memberPage, memberData.username, memberData.password);
     
@@ -546,7 +546,7 @@ test.describe('Resonant E2E Tests', () => {
     
     // Using API to join first
     const memberLogin = await request.post(`${API_URL}/api/auth/login`, { data: { username: memberData.username, password: memberData.password } });
-    const { token: mToken, userId: mId } = await memberLogin.json();
+    const { token: mToken } = await memberLogin.json();
     await request.post(`${API_URL}/api/servers/${server.id}/join`, { headers: { Authorization: `Bearer ${mToken}` } });
 
     await serverButton.click({ button: 'right' });
