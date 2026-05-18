@@ -58,7 +58,7 @@ export default function MessageThread({ serverId, channel, currentUser }) {
 
   const updateMessageList = (message) => {
     // Validate that the message object and ID are present to prevent processing malformed socket data
-    if (!message || !message.id) return;
+    if (!message?.id) return;
 
     setMessages(prev => {
       const index = prev.findIndex(m => m.id === message.id)
