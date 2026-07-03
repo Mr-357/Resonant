@@ -58,22 +58,22 @@ export const serverAPI = {
   listAll: () => apiClient.get('/api/servers/all'),
   create: (name, description = '') =>
     apiClient.post('/api/servers', { name, description }),
-  get: (serverId) => apiClient.get(`/api/servers/${serverId}`),
+  get: (serverId) => apiClient.get(`/api/servers/${encodeURIComponent(serverId)}`),
   update: (serverId, name, description) =>
-    apiClient.put(`/api/servers/${serverId}`, { name, description }),
-  delete: (serverId) => apiClient.delete(`/api/servers/${serverId}`),
-  join: (serverId) => apiClient.post(`/api/servers/${serverId}/join`),
-  leave: (serverId) => apiClient.post(`/api/servers/${serverId}/leave`),
+    apiClient.put(`/api/servers/${encodeURIComponent(serverId)}`, { name, description }),
+  delete: (serverId) => apiClient.delete(`/api/servers/${encodeURIComponent(serverId)}`),
+  join: (serverId) => apiClient.post(`/api/servers/${encodeURIComponent(serverId)}/join`),
+  leave: (serverId) => apiClient.post(`/api/servers/${encodeURIComponent(serverId)}/leave`),
   addMember: (serverId, userId) =>
-    apiClient.post(`/api/servers/${serverId}/members`, { userId }),
+    apiClient.post(`/api/servers/${encodeURIComponent(serverId)}/members`, { userId }),
   removeMember: (serverId, userId) =>
-    apiClient.delete(`/api/servers/${serverId}/members/${userId}`),
+    apiClient.delete(`/api/servers/${encodeURIComponent(serverId)}/members/${encodeURIComponent(userId)}`),
   banMember: (serverId, userId, duration) =>
-    apiClient.post(`/api/servers/${serverId}/bans/${userId}`, { duration }),
+    apiClient.post(`/api/servers/${encodeURIComponent(serverId)}/bans/${encodeURIComponent(userId)}`, { duration }),
   unbanMember: (serverId, userId) =>
-    apiClient.delete(`/api/servers/${serverId}/bans/${userId}`),
-  getBannedMembers: (serverId) => apiClient.get(`/api/servers/${serverId}/bans`),
-  getMembers: (serverId) => apiClient.get(`/api/servers/${serverId}/members`),
+    apiClient.delete(`/api/servers/${encodeURIComponent(serverId)}/bans/${encodeURIComponent(userId)}`),
+  getBannedMembers: (serverId) => apiClient.get(`/api/servers/${encodeURIComponent(serverId)}/bans`),
+  getMembers: (serverId) => apiClient.get(`/api/servers/${encodeURIComponent(serverId)}/members`),
 }
 
 // Channel endpoints
